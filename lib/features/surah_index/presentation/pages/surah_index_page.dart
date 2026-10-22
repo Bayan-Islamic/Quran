@@ -62,6 +62,7 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
           'بيان القرآن (Bayan Quran)',
           style: TextStyle(
             fontFamily: 'UthmanicHafs',
+            fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),

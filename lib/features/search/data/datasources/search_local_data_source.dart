@@ -35,7 +35,7 @@ class SearchLocalDataSourceImpl implements SearchLocalDataSource {
         s.name_en,
         s.type,
         s.total_verses,
-        s.page_number AS surah_page_number
+        s.start_page AS surah_page_number
       FROM ayahs a
       JOIN surahs s ON a.surah_id = s.id
       ORDER BY a.surah_id ASC, a.verse_number ASC

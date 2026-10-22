@@ -65,6 +65,18 @@ void main() {
     expect(fetchedAyahsCount, equals(6236));
   });
 
+  test('Verify Al-Fatiha, At-Tawbah, and Al-Baqarah Basmala expectations', () async {
+    final fatihaAyahs = await quranReaderRepository.getAyahsBySurahId(1);
+    expect(fatihaAyahs.first.textUthmani, contains('بِسْمِ'));
+
+    final tawbahAyahs = await quranReaderRepository.getAyahsBySurahId(9);
+    expect(tawbahAyahs.first.textUthmani.contains('بِسْمِ ٱللَّهِ'), false);
+
+    final baqarahAyahs = await quranReaderRepository.getAyahsBySurahId(2);
+    expect(baqarahAyahs.first.textUthmani.contains('بِسْمِ'), false);
+    expect(baqarahAyahs.first.textUthmani, equals('الٓمٓ'));
+  });
+
   test('Verify search surahs by name and ID', () async {
     final searchFatiha = await surahRepository.searchSurahs('الفاتحة');
     expect(searchFatiha.length, equals(1));

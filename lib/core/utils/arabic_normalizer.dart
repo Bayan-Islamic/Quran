@@ -4,6 +4,7 @@ class ArabicNormalizer {
   static String normalize(String input) {
     if (input.isEmpty) return input;
     String text = input.replaceAll(_bom, '');
+    text = text.replaceAll('ـ', '');
     text = text.replaceAll(RegExp(r'[أإآٱ]'), 'ا');
     text = text.replaceAll('ة', 'ه');
     text = text.replaceAll(

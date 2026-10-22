@@ -138,6 +138,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
               widget.surah.nameAr,
               style: const TextStyle(
                 fontFamily: 'UthmanicHafs',
+                fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),

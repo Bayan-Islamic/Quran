@@ -72,31 +72,20 @@ class AyahItem extends StatelessWidget {
                   text: '${ayah.textUthmani} ',
                   style: TextStyle(
                     fontFamily: 'UthmanicHafs',
+                    fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
                     fontSize: fontSize,
                     height: 2.1,
                     color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                   ),
                 ),
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.middle,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.accentGold,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Text(
-                      arabicVerseNum,
-                      style: TextStyle(
-                        fontFamily: 'UthmanicHafs',
-                        fontSize: fontSize * 0.55,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.accentGold,
-                      ),
-                    ),
+                TextSpan(
+                  text: '﴿$arabicVerseNum﴾',
+                  style: TextStyle(
+                    fontFamily: 'UthmanicHafs',
+                    fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
+                    fontSize: fontSize * 0.85,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.accentGold,
                   ),
                 ),
               ],
