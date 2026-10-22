@@ -35,11 +35,11 @@ jobs:
       - name: Run unit tests
         run: flutter test
 
-      - name: Build Debug APK
-        run: flutter build apk --debug
+      - name: Build Release APKs (Split per ABI)
+        run: flutter build apk --release --split-per-abi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bayan-quran-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: bayan-quran-release-apks
+          path: build/app/outputs/flutter-apk/app-*-release.apk
