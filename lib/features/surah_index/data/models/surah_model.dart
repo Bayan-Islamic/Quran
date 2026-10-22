@@ -17,7 +17,7 @@ class SurahModel extends Surah {
       nameEn: map['name_en'] as String,
       type: map['type'] as String,
       totalVerses: map['total_verses'] as int,
-      pageNumber: map['page_number'] as int,
+      pageNumber: (map['start_page'] ?? map['page_number']) as int,
     );
   }
 
@@ -28,7 +28,7 @@ class SurahModel extends Surah {
       'name_en': nameEn,
       'type': type,
       'total_verses': totalVerses,
-      'page_number': pageNumber,
+      'start_page': pageNumber,
     };
   }
 }

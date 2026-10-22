@@ -75,6 +75,7 @@ class ContinueReadingBanner extends StatelessWidget {
                   'سورة ${bookmark.surahNameAr} - الآية ${ArabicNumberConverter.convert(bookmark.verseNumber)}',
                   style: const TextStyle(
                     fontFamily: 'UthmanicHafs',
+            fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,

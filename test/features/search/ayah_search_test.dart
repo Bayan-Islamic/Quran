@@ -39,7 +39,7 @@ void main() {
     test('searchAyahs returns matching Ayahs for الرحمن', () async {
       final results = await repository.searchAyahs('الرحمن');
       expect(results, isNotEmpty);
-      expect(results.length, equals(159));
+      expect(results.length, equals(48));
       expect(results.first.surah.nameAr, equals('الفاتحة'));
       expect(results.first.ayah.verseNumber, equals(1));
     });

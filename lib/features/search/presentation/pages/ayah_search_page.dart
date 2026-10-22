@@ -34,6 +34,7 @@ class _AyahSearchPageState extends State<AyahSearchPage> {
           'البحث في القرآن الكريم',
           style: TextStyle(
             fontFamily: 'UthmanicHafs',
+            fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),

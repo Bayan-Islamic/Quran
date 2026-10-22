@@ -25,12 +25,14 @@ class SearchResultCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final defaultStyle = TextStyle(
       fontFamily: 'UthmanicHafs',
+      fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
       fontSize: 20,
       height: 2.0,
       color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
     );
     final highlightStyle = TextStyle(
       fontFamily: 'UthmanicHafs',
+      fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
       fontSize: 20,
       height: 2.0,
       fontWeight: FontWeight.bold,
@@ -96,6 +98,7 @@ class SearchResultCard extends StatelessWidget {
                           'سورة ${surah.nameAr}',
                           style: const TextStyle(
                             fontFamily: 'UthmanicHafs',
+      fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryEmerald,
                             fontSize: 14,
