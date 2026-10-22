@@ -1,24 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/database/database_helper.dart';
 import 'core/theme/app_theme.dart';
+import 'features/bookmark/data/datasources/bookmark_local_data_source.dart';
+import 'features/bookmark/data/repositories/bookmark_repository_impl.dart';
+import 'features/bookmark/presentation/cubit/bookmark_cubit.dart';
 import 'features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'features/quran_reader/data/repositories/quran_reader_repository_impl.dart';
 import 'features/quran_reader/presentation/cubit/quran_reader_cubit.dart';
+import 'features/search/data/datasources/search_local_data_source.dart';
+import 'features/search/data/repositories/search_repository_impl.dart';
+import 'features/search/presentation/cubit/search_cubit.dart';
 import 'features/surah_index/data/datasources/surah_local_data_source.dart';
 import 'features/surah_index/data/repositories/surah_repository_impl.dart';
 import 'features/surah_index/presentation/cubit/surah_index_cubit.dart';
 import 'features/surah_index/presentation/pages/surah_index_page.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const BayanQuranApp());
+  final prefs = await SharedPreferences.getInstance();
+  runApp(BayanQuranApp(sharedPreferences: prefs));
 }
 
 class BayanQuranApp extends StatefulWidget {
-  const BayanQuranApp({super.key});
+  final SharedPreferences? sharedPreferences;
+
+  const BayanQuranApp({super.key, this.sharedPreferences});
 
   @override
   State<BayanQuranApp> createState() => _BayanQuranAppState();
@@ -43,6 +53,9 @@ class _BayanQuranAppState extends State<BayanQuranApp> {
     final quranReaderLocalDataSource = QuranReaderLocalDataSourceImpl(databaseHelper: dbHelper);
     final quranReaderRepository = QuranReaderRepositoryImpl(localDataSource: quranReaderLocalDataSource);
 
+    final searchLocalDataSource = SearchLocalDataSourceImpl(databaseHelper: dbHelper);
+    final searchRepository = SearchRepositoryImpl(localDataSource: searchLocalDataSource);
+
     return MultiBlocProvider(
       providers: [
         BlocProvider<SurahIndexCubit>(
@@ -51,9 +64,22 @@ class _BayanQuranAppState extends State<BayanQuranApp> {
         BlocProvider<QuranReaderCubit>(
           create: (context) => QuranReaderCubit(quranReaderRepository: quranReaderRepository),
         ),
+        BlocProvider<SearchCubit>(
+          create: (context) => SearchCubit(searchRepository: searchRepository),
+        ),
+        if (widget.sharedPreferences != null)
+          BlocProvider<BookmarkCubit>(
+            create: (context) => BookmarkCubit(
+              bookmarkRepository: BookmarkRepositoryImpl(
+                localDataSource: BookmarkLocalDataSourceImpl(
+                  sharedPreferences: widget.sharedPreferences!,
+                ),
+              ),
+            )..loadLastRead(),
+          ),
       ],
       child: MaterialApp(
-        title: 'Bayan Quran',
+        title: 'بيان القرآن',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,

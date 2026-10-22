@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../bookmark/presentation/cubit/bookmark_cubit.dart';
+import '../../../bookmark/presentation/cubit/bookmark_state.dart';
+import '../../../bookmark/presentation/widgets/continue_reading_banner.dart';
 import '../../../quran_reader/presentation/pages/quran_reader_page.dart';
+import '../../../search/presentation/pages/ayah_search_page.dart';
+import '../../domain/entities/surah.dart';
 import '../cubit/surah_index_cubit.dart';
 import '../cubit/surah_index_state.dart';
 import '../widgets/surah_card.dart';
@@ -35,6 +40,18 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
     super.dispose();
   }
 
+  void _navigateToSurah(Surah surah, {int? initialVerseNumber}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (routeContext) => QuranReaderPage(
+          surah: surah,
+          initialVerseNumber: initialVerseNumber,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDarkMode;
@@ -44,12 +61,24 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
         title: const Text(
           'بيان القرآن (Bayan Quran)',
           style: TextStyle(
-            fontFamily: 'Amiri',
+            fontFamily: 'UthmanicHafs',
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.manage_search),
+            tooltip: 'البحث في الآيات',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (routeContext) => const AyahSearchPage(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
             tooltip: isDark ? 'الوضع الفاتح' : 'الوضع الداكن',
@@ -99,19 +128,19 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
           ),
           Expanded(
             child: BlocBuilder<SurahIndexCubit, SurahIndexState>(
-              builder: (context, state) {
-                if (state is SurahIndexLoading) {
+              builder: (context, indexState) {
+                if (indexState is SurahIndexLoading) {
                   return const Center(
                     child: CircularProgressIndicator(color: AppColors.primaryEmerald),
                   );
-                } else if (state is SurahIndexError) {
+                } else if (indexState is SurahIndexError) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.error_outline, size: 48, color: Colors.red),
                         const SizedBox(height: 12),
-                        Text(state.message),
+                        Text(indexState.message),
                         const SizedBox(height: 12),
                         ElevatedButton(
                           onPressed: () {
@@ -122,25 +151,45 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
                       ],
                     ),
                   );
-                } else if (state is SurahIndexLoaded) {
-                  final surahs = state.surahs;
-                  if (surahs.isEmpty) {
-                    return const Center(
-                      child: Text('لا توجد نتائج متطابقة (No Surahs found)'),
-                    );
-                  }
-                  return ListView.builder(
-                    itemCount: surahs.length,
-                    itemBuilder: (context, index) {
-                      final surah = surahs[index];
-                      return SurahCard(
-                        surah: surah,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (routeContext) => QuranReaderPage(surah: surah),
-                            ),
+                } else if (indexState is SurahIndexLoaded) {
+                  final surahs = indexState.surahs;
+
+                  return BlocBuilder<BookmarkCubit, BookmarkState>(
+                    builder: (context, bookmarkState) {
+                      final bookmark = (bookmarkState is BookmarkLoaded) ? bookmarkState.bookmark : null;
+                      final showBanner = bookmark != null && _searchController.text.isEmpty;
+
+                      if (surahs.isEmpty && !showBanner) {
+                        return const Center(
+                          child: Text('لا توجد نتائج متطابقة (No Surahs found)'),
+                        );
+                      }
+
+                      return ListView.builder(
+                        itemCount: surahs.length + (showBanner ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (showBanner && index == 0) {
+                            return ContinueReadingBanner(
+                              bookmark: bookmark,
+                              onTap: () {
+                                try {
+                                  final targetSurah = surahs.firstWhere(
+                                    (s) => s.id == bookmark.surahId,
+                                  );
+                                  _navigateToSurah(
+                                    targetSurah,
+                                    initialVerseNumber: bookmark.verseNumber,
+                                  );
+                                } catch (_) {}
+                              },
+                            );
+                          }
+
+                          final surahIndex = showBanner ? index - 1 : index;
+                          final surah = surahs[surahIndex];
+                          return SurahCard(
+                            surah: surah,
+                            onTap: () => _navigateToSurah(surah),
                           );
                         },
                       );

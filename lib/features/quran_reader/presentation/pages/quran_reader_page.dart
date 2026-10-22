@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../bookmark/presentation/cubit/bookmark_cubit.dart';
 import '../../../surah_index/domain/entities/surah.dart';
 import '../cubit/quran_reader_cubit.dart';
 import '../cubit/quran_reader_state.dart';
@@ -9,10 +10,12 @@ import '../widgets/basmala_header.dart';
 
 class QuranReaderPage extends StatefulWidget {
   final Surah surah;
+  final int? initialVerseNumber;
 
   const QuranReaderPage({
     super.key,
     required this.surah,
+    this.initialVerseNumber,
   });
 
   @override
@@ -20,10 +23,57 @@ class QuranReaderPage extends StatefulWidget {
 }
 
 class _QuranReaderPageState extends State<QuranReaderPage> {
+  late ScrollController _scrollController;
+  bool _hasScrolledToInitialVerse = false;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     context.read<QuranReaderCubit>().loadSurahVerses(widget.surah.id);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _saveBookmark(int verseNumber) {
+    context.read<BookmarkCubit>().saveLastRead(
+          surahId: widget.surah.id,
+          surahNameAr: widget.surah.nameAr,
+          verseNumber: verseNumber,
+        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('تم حفظ الآية $verseNumber في القراءة الأخيرة'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _scrollToInitialVerse(int itemCount, bool showBasmala) {
+    if (_hasScrolledToInitialVerse || widget.initialVerseNumber == null) return;
+    _hasScrolledToInitialVerse = true;
+
+    final targetVerse = widget.initialVerseNumber!;
+    final targetIndex = (targetVerse - 1) + (showBasmala ? 1 : 0);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final offset = (targetIndex * 140.0).clamp(
+          0.0,
+          _scrollController.position.maxScrollExtent,
+        );
+        _scrollController.animateTo(
+          offset,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   void _showFontSizeDialog(BuildContext context) {
@@ -34,7 +84,6 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
       ),
       builder: (bottomSheetContext) {
         return BlocBuilder<QuranReaderCubit, QuranReaderState>(
-          bloc: BlocProvider.of<QuranReaderCubit>(context),
           builder: (context, state) {
             return Padding(
               padding: const EdgeInsets.all(24.0),
@@ -79,8 +128,6 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Show Basmala header for all Surahs except Surah At-Tawbah (Surah ID 9)
-    // and Surah Al-Fatihah (Surah ID 1, where Basmala is verse 1)
     final showBasmala = widget.surah.id != 9 && widget.surah.id != 1;
 
     return Scaffold(
@@ -90,7 +137,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
             Text(
               widget.surah.nameAr,
               style: const TextStyle(
-                fontFamily: 'Amiri',
+                fontFamily: 'UthmanicHafs',
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -140,18 +187,32 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
             );
           } else if (state is QuranReaderLoaded) {
             final ayahs = state.ayahs;
+            final totalItems = ayahs.length + (showBasmala ? 1 : 0);
+
+            if (widget.initialVerseNumber != null) {
+              _scrollToInitialVerse(totalItems, showBasmala);
+            }
+
             return ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.only(top: 8, bottom: 24),
-              itemCount: ayahs.length + (showBasmala ? 1 : 0),
+              itemCount: totalItems,
               itemBuilder: (context, index) {
                 if (showBasmala && index == 0) {
                   return const BasmalaHeader();
                 }
                 final ayahIndex = showBasmala ? index - 1 : index;
                 final ayah = ayahs[ayahIndex];
-                return AyahItem(
-                  ayah: ayah,
-                  fontSize: state.fontSize,
+                final isInitialVerse = widget.initialVerseNumber != null &&
+                    ayah.verseNumber == widget.initialVerseNumber;
+
+                return InkWell(
+                  onLongPress: () => _saveBookmark(ayah.verseNumber),
+                  child: AyahItem(
+                    ayah: ayah,
+                    fontSize: state.fontSize,
+                    isHighlighted: isInitialVerse,
+                  ),
                 );
               },
             );
