@@ -6,11 +6,13 @@ import '../../domain/entities/ayah.dart';
 class AyahItem extends StatelessWidget {
   final Ayah ayah;
   final double fontSize;
+  final bool isHighlighted;
 
   const AyahItem({
     super.key,
     required this.ayah,
     required this.fontSize,
+    this.isHighlighted = false,
   });
 
   @override
@@ -23,11 +25,15 @@ class AyahItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        color: isHighlighted
+            ? AppColors.accentGold.withValues(alpha: 0.2)
+            : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-          width: 0.8,
+          color: isHighlighted
+              ? AppColors.accentGold
+              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          width: isHighlighted ? 1.5 : 0.8,
         ),
       ),
       child: Column(
@@ -65,9 +71,9 @@ class AyahItem extends StatelessWidget {
                 TextSpan(
                   text: '${ayah.textUthmani} ',
                   style: TextStyle(
-                    fontFamily: 'Amiri',
+                    fontFamily: 'UthmanicHafs',
                     fontSize: fontSize,
-                    height: 2.0,
+                    height: 2.1,
                     color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                   ),
                 ),
@@ -85,7 +91,7 @@ class AyahItem extends StatelessWidget {
                     child: Text(
                       arabicVerseNum,
                       style: TextStyle(
-                        fontFamily: 'Amiri',
+                        fontFamily: 'UthmanicHafs',
                         fontSize: fontSize * 0.55,
                         fontWeight: FontWeight.bold,
                         color: AppColors.accentGold,

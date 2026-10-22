@@ -27,11 +27,11 @@ class BasmalaHeader extends StatelessWidget {
           'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Amiri',
+            fontFamily: 'UthmanicHafs',
             fontSize: 26,
             fontWeight: FontWeight.bold,
             color: AppColors.primaryEmerald,
-            height: 1.6,
+            height: 2.1,
           ),
         ),
       ),
