@@ -16,6 +16,11 @@ class SearchResultCard extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Highlights every occurrence of [query] inside the diacritised [text].
+  ///
+  /// The match is located in the normalised form and then mapped back to the
+  /// source offsets so the highlight covers the original, still-diacritised
+  /// characters.
   List<InlineSpan> _buildHighlightedText(
     BuildContext context,
     String text,
@@ -27,14 +32,14 @@ class SearchResultCard extends StatelessWidget {
       fontFamily: 'UthmanicHafs',
       fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
       fontSize: 20,
-      height: 2.0,
+      height: 2.1,
       color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
     );
     final highlightStyle = TextStyle(
       fontFamily: 'UthmanicHafs',
       fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
       fontSize: 20,
-      height: 2.0,
+      height: 2.1,
       fontWeight: FontWeight.bold,
       color: AppColors.primaryEmerald,
       backgroundColor: AppColors.accentGold.withValues(alpha: 0.35),
@@ -45,25 +50,29 @@ class SearchResultCard extends StatelessWidget {
       return [TextSpan(text: text, style: defaultStyle)];
     }
 
-    final words = text.split(' ');
+    final normalized = ArabicNormalizer.normalizeWithOffsets(text);
     final spans = <InlineSpan>[];
+    int cursor = 0;
 
-    for (int i = 0; i < words.length; i++) {
-      final word = words[i];
-      final normWord = ArabicNormalizer.normalize(word);
-
-      if (normWord.contains(normQuery)) {
-        spans.add(TextSpan(text: word, style: highlightStyle));
-      } else {
-        spans.add(TextSpan(text: word, style: defaultStyle));
+    for (int match = normalized.text.indexOf(normQuery);
+        match != -1;
+        match = normalized.text.indexOf(normQuery, match + normQuery.length)) {
+      final start = normalized.offsets[match];
+      int end = normalized.offsets[match + normQuery.length - 1] + 1;
+      while (end < text.length && ArabicNormalizer.isDiacritic(text[end])) {
+        end++;
       }
-
-      if (i < words.length - 1) {
-        spans.add(TextSpan(text: ' ', style: defaultStyle));
+      if (start > cursor) {
+        spans.add(TextSpan(text: text.substring(cursor, start), style: defaultStyle));
       }
+      spans.add(TextSpan(text: text.substring(start, end), style: highlightStyle));
+      cursor = end;
     }
 
-    return spans;
+    if (cursor < text.length) {
+      spans.add(TextSpan(text: text.substring(cursor), style: defaultStyle));
+    }
+    return spans.isEmpty ? [TextSpan(text: text, style: defaultStyle)] : spans;
   }
 
   @override

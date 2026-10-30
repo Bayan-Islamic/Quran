@@ -9,26 +9,71 @@ import 'package:bayan_quran/features/quran_reader/presentation/pages/quran_reade
 import 'package:bayan_quran/features/quran_reader/presentation/widgets/basmala_header.dart';
 import 'package:bayan_quran/features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'package:bayan_quran/features/surah_index/domain/entities/surah.dart';
-import 'package:bayan_quran/features/bookmark/presentation/cubit/bookmark_cubit.dart';
-import 'package:bayan_quran/features/bookmark/domain/repositories/bookmark_repository.dart';
-import 'package:bayan_quran/features/bookmark/domain/entities/bookmark.dart';
+import 'package:bayan_quran/features/bookmarks/presentation/cubit/bookmark_cubit.dart';
+import 'package:bayan_quran/features/bookmarks/domain/repositories/bookmark_repository.dart';
+import 'package:bayan_quran/features/bookmarks/domain/entities/bookmark.dart';
 
 class MockQuranReaderRepository implements QuranReaderRepository {
   @override
   Future<List<Ayah>> getAyahsBySurahId(int surahId) async {
     if (surahId == 1) {
       return [
-        const Ayah(id: 1, surahId: 1, verseNumber: 1, textUthmani: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', pageNumber: 1, juz: 1),
-        const Ayah(id: 2, surahId: 1, verseNumber: 2, textUthmani: 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ', pageNumber: 1, juz: 1),
+        const Ayah(
+          id: 1,
+          surahId: 1,
+          verseNumber: 1,
+          textUthmani: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+          textSearchNormalised: 'بسم الله الرحمن الرحيم',
+          pageNumber: 1,
+          juz: 1,
+          hizb: 1,
+        ),
+        const Ayah(
+          id: 2,
+          surahId: 1,
+          verseNumber: 2,
+          textUthmani: 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ',
+          textSearchNormalised: 'الحمد لله رب العالمين',
+          pageNumber: 1,
+          juz: 1,
+          hizb: 1,
+        ),
       ];
     } else if (surahId == 9) {
       return [
-        const Ayah(id: 1, surahId: 9, verseNumber: 1, textUthmani: 'بَرَآءَةٌ مِّنَ ٱللَّهِ وَرَسُولِهِۦ', pageNumber: 187, juz: 10),
+        const Ayah(
+          id: 1,
+          surahId: 9,
+          verseNumber: 1,
+          textUthmani: 'بَرَآءَةٌ مِّنَ ٱللَّهِ وَرَسُولِهِۦ',
+          textSearchNormalised: 'براءه من الله ورسوله',
+          pageNumber: 187,
+          juz: 10,
+          hizb: 19,
+        ),
       ];
     } else {
       return [
-        const Ayah(id: 1, surahId: 2, verseNumber: 1, textUthmani: 'الٓمٓ', pageNumber: 2, juz: 1),
-        const Ayah(id: 2, surahId: 2, verseNumber: 2, textUthmani: 'ذَٰلِكَ ٱلْكِتَٰبُ لَا رَيْبَ ۛ فِيهِ', pageNumber: 2, juz: 1),
+        const Ayah(
+          id: 1,
+          surahId: 2,
+          verseNumber: 1,
+          textUthmani: 'الٓمٓ',
+          textSearchNormalised: 'الم',
+          pageNumber: 2,
+          juz: 1,
+          hizb: 1,
+        ),
+        const Ayah(
+          id: 2,
+          surahId: 2,
+          verseNumber: 2,
+          textUthmani: 'ذَٰلِكَ ٱلْكِتَٰبُ لَا رَيْبَ ۛ فِيهِ',
+          textSearchNormalised: 'ذلك الكتاب لا ريب فيه',
+          pageNumber: 2,
+          juz: 1,
+          hizb: 1,
+        ),
       ];
     }
   }

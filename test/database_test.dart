@@ -77,6 +77,57 @@ void main() {
     expect(baqarahAyahs.first.textUthmani, equals('الٓمٓ'));
   });
 
+  test('No surah other than 1 and 9 has a Basmala prefix on verse 1', () async {
+    for (final surah in await surahRepository.getAllSurahs()) {
+      if (surah.id == 1 || surah.id == 9) continue;
+      final first = (await quranReaderRepository.getAyahsBySurahId(surah.id)).first;
+      expect(
+        first.textUthmani.startsWith('بِسْمِ ٱللَّهِ'),
+        isFalse,
+        reason: 'surah ${surah.id} still repeats the Basmala in verse 1',
+      );
+    }
+  });
+
+  test('Verify hizb, juz and page ranges', () async {
+    final hizb = await db.rawQuery('SELECT MIN(hizb) AS lo, MAX(hizb) AS hi FROM ayahs');
+    expect(hizb.first['lo'], equals(1));
+    expect(hizb.first['hi'], equals(60));
+
+    final juz = await db.rawQuery('SELECT MIN(juz) AS lo, MAX(juz) AS hi FROM ayahs');
+    expect(juz.first['lo'], equals(1));
+    expect(juz.first['hi'], equals(30));
+
+    final pages = await db.rawQuery('SELECT COUNT(DISTINCT page_number) AS c FROM ayahs');
+    expect(pages.first['c'], equals(604));
+  });
+
+  test('Verify surah start_page matches its first ayah page', () async {
+    final rows = await db.rawQuery('''
+      SELECT s.id AS id, s.start_page AS start_page, MIN(a.page_number) AS first_page
+      FROM surahs s JOIN ayahs a ON a.surah_id = s.id
+      GROUP BY s.id
+    ''');
+    for (final row in rows) {
+      expect(row['start_page'], equals(row['first_page']), reason: 'surah ${row['id']}');
+    }
+  });
+
+  test('Verify standard Unicode text with pause glyphs and no PUA', () async {
+    final rows = await db.rawQuery('SELECT text_uthmani FROM ayahs');
+    var pauseGlyphCount = 0;
+    for (final row in rows) {
+      final text = row['text_uthmani'] as String;
+      for (final rune in text.runes) {
+        expect(rune >= 0xE000 && rune <= 0xF8FF, isFalse,
+            reason: 'PUA character U+${rune.toRadixString(16)} in $text');
+        if (rune >= 0x06D6 && rune <= 0x06ED) pauseGlyphCount++;
+      }
+    }
+    expect(pauseGlyphCount, greaterThan(0));
+  });
+
+
   test('Verify search surahs by name and ID', () async {
     final searchFatiha = await surahRepository.searchSurahs('الفاتحة');
     expect(searchFatiha.length, equals(1));

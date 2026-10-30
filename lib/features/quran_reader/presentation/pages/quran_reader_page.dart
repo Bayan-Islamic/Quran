@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../bookmark/presentation/cubit/bookmark_cubit.dart';
+import '../../../bookmarks/presentation/cubit/bookmark_cubit.dart';
 import '../../../surah_index/domain/entities/surah.dart';
 import '../cubit/quran_reader_cubit.dart';
 import '../cubit/quran_reader_state.dart';

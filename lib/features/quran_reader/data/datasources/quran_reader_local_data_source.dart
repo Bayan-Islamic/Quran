@@ -11,19 +11,28 @@ class QuranReaderLocalDataSourceImpl implements QuranReaderLocalDataSource {
 
   QuranReaderLocalDataSourceImpl({required this.databaseHelper});
 
+  static const String _basmala = 'بسم الله الرحمن الرحيم';
+
+  /// Surah 1 keeps the Basmala as its first verse; Surah 9 has none.
+  static bool shouldStripBasmala(int surahId) => surahId != 1 && surahId != 9;
+
+  /// Removes a leading Basmala from a first verse, preserving the rest of the
+  /// text (including its diacritics). Matching is done on the normalised form
+  /// so the exact diacritic spelling does not matter, but the returned slice
+  /// comes from the original string.
   static String stripBasmalaPrefix(String text) {
-    final cleanText = text.replaceFirst(RegExp(r'^﻿?\s*'), '');
-    final normalized = ArabicNormalizer.normalize(cleanText);
-    if (normalized.startsWith('بسم الله الرحمن الرحيم')) {
-      final basmalaRegex = RegExp(
-        r'^(?:بِ?سْ?مِ?\s*ٱ?للَّ?هِ?\s*ٱ?لرَّ?حْ?مَ?ـٰ?نِ?\s*ٱ?لرَّ?حِ?ي?مِ?\s*)',
-      );
-      final match = basmalaRegex.firstMatch(cleanText);
-      if (match != null && match.end > 0) {
-        return cleanText.substring(match.end).trim();
+    final stripped = text.trim();
+    if (!ArabicNormalizer.normalize(stripped).startsWith(_basmala)) {
+      return stripped;
+    }
+    final words = stripped.split(RegExp(r'\s+'));
+    for (int i = 0; i < words.length; i++) {
+      if (ArabicNormalizer.normalize(words.sublist(0, i + 1).join(' ')) ==
+          _basmala) {
+        return words.sublist(i + 1).join(' ').trim();
       }
     }
-    return cleanText.trim();
+    return stripped;
   }
 
   @override
@@ -36,17 +45,24 @@ class QuranReaderLocalDataSourceImpl implements QuranReaderLocalDataSource {
       orderBy: 'verse_number ASC',
     );
     final list = maps.map((map) => AyahModel.fromMap(map)).toList();
-    if (surahId != 1 && surahId != 9 && list.isNotEmpty && list.first.verseNumber == 1) {
+
+    if (shouldStripBasmala(surahId) &&
+        list.isNotEmpty &&
+        list.first.verseNumber == 1) {
       final first = list.first;
       final strippedText = stripBasmalaPrefix(first.textUthmani);
-      list[0] = AyahModel(
-        id: first.id,
-        surahId: first.surahId,
-        verseNumber: first.verseNumber,
-        textUthmani: strippedText,
-        pageNumber: first.pageNumber,
-        juz: first.juz,
-      );
+      if (strippedText != first.textUthmani) {
+        list[0] = AyahModel(
+          id: first.id,
+          surahId: first.surahId,
+          verseNumber: first.verseNumber,
+          textUthmani: strippedText,
+          textSearchNormalised: ArabicNormalizer.normalize(strippedText),
+          pageNumber: first.pageNumber,
+          juz: first.juz,
+          hizb: first.hizb,
+        );
+      }
     }
     return list;
   }

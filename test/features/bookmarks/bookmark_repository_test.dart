@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:bayan_quran/features/bookmark/data/datasources/bookmark_local_data_source.dart';
-import 'package:bayan_quran/features/bookmark/data/repositories/bookmark_repository_impl.dart';
+import 'package:bayan_quran/features/bookmarks/data/datasources/bookmark_local_data_source.dart';
+import 'package:bayan_quran/features/bookmarks/data/repositories/bookmark_repository_impl.dart';
 
 void main() {
   group('BookmarkRepository', () {

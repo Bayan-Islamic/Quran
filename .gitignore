@@ -25,3 +25,14 @@
 .pub/
 build/
 test_quran.db
+
+# Python tooling
+__pycache__/
+*.py[cod]
+tools/cache/
+
+# Generated Mushaf page images
+assets/mushaf/
+
+# Agent memory / local tooling
+.openhands/

@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/database/database_helper.dart';
 import 'core/theme/app_theme.dart';
-import 'features/bookmark/data/datasources/bookmark_local_data_source.dart';
-import 'features/bookmark/data/repositories/bookmark_repository_impl.dart';
-import 'features/bookmark/presentation/cubit/bookmark_cubit.dart';
+import 'features/bookmarks/data/datasources/bookmark_local_data_source.dart';
+import 'features/bookmarks/data/repositories/bookmark_repository_impl.dart';
+import 'features/bookmarks/presentation/cubit/bookmark_cubit.dart';
 import 'features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'features/quran_reader/data/repositories/quran_reader_repository_impl.dart';
 import 'features/quran_reader/presentation/cubit/quran_reader_cubit.dart';

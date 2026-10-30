@@ -44,9 +44,38 @@ void main() {
       expect(results.first.ayah.verseNumber, equals(1));
     });
 
+    test('searchAyahs normalises diacritics in the query', () async {
+      final withDiacritics = await repository.searchAyahs('ٱلرَّحْمَٰنِ');
+      final withoutDiacritics = await repository.searchAyahs('الرحمن');
+      expect(withDiacritics.length, equals(withoutDiacritics.length));
+      expect(withDiacritics.first.ayah.surahId, equals(1));
+    });
+
+    test('searchAyahs matches on the precomputed normalised column', () async {
+      final results = await repository.searchAyahs('موسي');
+      expect(results, isNotEmpty);
+      expect(
+        results.every((r) => r.ayah.textSearchNormalised.contains('موسي')),
+        isTrue,
+      );
+    });
+
+    test('searchAyahs treats LIKE metacharacters literally', () async {
+      final results = await repository.searchAyahs('%');
+      expect(results, isEmpty);
+    });
+
     test('searchAyahs returns empty list for empty query', () async {
       final results = await repository.searchAyahs('   ');
       expect(results, isEmpty);
+    });
+
+    test('every ayah carries a non-empty normalised search text', () async {
+      final count = await db.rawQuery(
+        "SELECT COUNT(*) AS c FROM ayahs WHERE text_search_normalised IS NULL "
+        "OR text_search_normalised = ''",
+      );
+      expect(count.first['c'], equals(0));
     });
   });
 }

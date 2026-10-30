@@ -1,0 +1,85 @@
+"""Tests for tools/build_quran_db.py.
+
+Run with the standard library only:
+
+    python3 -m unittest discover -s tools/tests -v
+
+These tests do not touch the network: they exercise the pure helpers only.
+"""
+
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "tools"))
+
+import build_quran_db as builder  # noqa: E402
+
+
+class NormalizeArabicTest(unittest.TestCase):
+    def test_folds_alif_variants(self):
+        self.assertEqual(builder.normalize_arabic("أحمد"), "احمد")
+        self.assertEqual(builder.normalize_arabic("إبراهيم"), "ابراهيم")
+        self.assertEqual(builder.normalize_arabic("آدم"), "ادم")
+        self.assertEqual(builder.normalize_arabic("ٱللَّهِ"), "الله")
+
+    def test_folds_taa_marbuta_and_alef_maksura(self):
+        self.assertEqual(builder.normalize_arabic("الجمعة"), "الجمعه")
+        self.assertEqual(builder.normalize_arabic("موسى"), "موسي")
+
+    def test_strips_diacritics_tatweel_and_whitespace(self):
+        self.assertEqual(
+            builder.normalize_arabic("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ"),
+            "بسم الله الرحمن الرحيم",
+        )
+        self.assertEqual(builder.normalize_arabic("ٱلْعَـٰلَمِينَ"), "العلمين")
+        self.assertEqual(builder.normalize_arabic("  a   b  "), "a b")
+        self.assertEqual(builder.normalize_arabic(""), "")
+
+
+class StripBasmalaTest(unittest.TestCase):
+    def test_removes_a_diacritised_prefix(self):
+        text = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ الٓمٓ"
+        self.assertEqual(builder.strip_basmala_prefix(text), "الٓمٓ")
+
+    def test_keeps_text_without_a_prefix(self):
+        self.assertEqual(builder.strip_basmala_prefix("الٓمٓ"), "الٓمٓ")
+
+    def test_removes_a_bare_prefix(self):
+        self.assertEqual(
+            builder.strip_basmala_prefix("بسم الله الرحمن الرحيم الحمد لله"),
+            "الحمد لله",
+        )
+
+
+class ValidateTest(unittest.TestCase):
+    @staticmethod
+    def _surahs():
+        return [(i, "n", "n", "مكية", 1, 1) for i in range(1, 115)]
+
+    @staticmethod
+    def _verses():
+        # One verse per surah keeps the declared and actual counts consistent,
+        # so only the aggregate-count checks are exercised.
+        return [(i, 1, "الٓمٓ", 1, 1, 1) for i in range(1, 115)]
+
+    def test_rejects_the_wrong_surah_count(self):
+        with self.assertRaises(SystemExit):
+            builder.validate([(1, "n", "n", "مكية", 1, 1)], self._verses())
+
+    def test_rejects_the_wrong_ayah_count(self):
+        with self.assertRaises(SystemExit):
+            builder.validate(self._surahs(), [])
+
+    def test_rejects_a_basmala_prefix_on_verse_one(self):
+        verses = self._verses()
+        verses[1] = (2, 1, "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ الٓمٓ", 2, 1, 1)
+        with self.assertRaises(SystemExit):
+            builder.validate(self._surahs(), verses)
+
+
+if __name__ == "__main__":
+    unittest.main()

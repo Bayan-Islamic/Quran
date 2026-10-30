@@ -1,0 +1,102 @@
+[
+  {
+    "input": "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ",
+    "normalized": "بسم الله الرحمن الرحيم"
+  },
+  {
+    "input": "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَـٰلَمِينَ",
+    "normalized": "الحمد لله رب العلمين"
+  },
+  {
+    "input": "أحمد",
+    "normalized": "احمد"
+  },
+  {
+    "input": "إبراهيم",
+    "normalized": "ابراهيم"
+  },
+  {
+    "input": "آدم",
+    "normalized": "ادم"
+  },
+  {
+    "input": "ٱللَّهِ",
+    "normalized": "الله"
+  },
+  {
+    "input": "الجمعة",
+    "normalized": "الجمعه"
+  },
+  {
+    "input": "رحمة",
+    "normalized": "رحمه"
+  },
+  {
+    "input": "ذَٰلِكَ ٱلْكِتَـٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًى لِّلْمُتَّقِينَ",
+    "normalized": "ذلك الكتب لا ريب فيه هدي للمتقين"
+  },
+  {
+    "input": "مُوسَىٰ",
+    "normalized": "موسي"
+  },
+  {
+    "input": "عِيسَى",
+    "normalized": "عيسي"
+  },
+  {
+    "input": "إِلَى",
+    "normalized": "الي"
+  },
+  {
+    "input": "أَنَّ",
+    "normalized": "ان"
+  },
+  {
+    "input": "الٓمٓ",
+    "normalized": "الم"
+  },
+  {
+    "input": "يسٓ",
+    "normalized": "يس"
+  },
+  {
+    "input": "حمٓ",
+    "normalized": "حم"
+  },
+  {
+    "input": "بَرَآءَةٌ مِّنَ ٱللَّهِ وَرَسُولِهِۦٓ",
+    "normalized": "براءه من الله ورسوله"
+  },
+  {
+    "input": "قَالُوا۟ يَـٰمُوسَىٰ",
+    "normalized": "قالوا يموسي"
+  },
+  {
+    "input": "فِرْعَوْنَ",
+    "normalized": "فرعون"
+  },
+  {
+    "input": "ٱلْأَرْضِ",
+    "normalized": "الارض"
+  },
+  {
+    "input": "",
+    "normalized": ""
+  },
+  {
+    "input": "  ",
+    "normalized": ""
+  },
+  {
+    "input": "  multiple   spaces  ",
+    "normalized": "multiple spaces"
+  },
+  {
+    "input": "مُحَمَّدٌ رَّسُولُ ٱللَّهِ",
+    "normalized": "محمد رسول الله"
+  },
+  {
+    "input": "﻿بِسْمِ ٱللَّهِ",
+    "normalized": "بسم الله"
+  }
+]

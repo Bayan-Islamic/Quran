@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../bookmark/presentation/cubit/bookmark_cubit.dart';
-import '../../../bookmark/presentation/cubit/bookmark_state.dart';
-import '../../../bookmark/presentation/widgets/continue_reading_banner.dart';
+import '../../../bookmarks/presentation/cubit/bookmark_cubit.dart';
+import '../../../bookmarks/presentation/cubit/bookmark_state.dart';
+import '../../../bookmarks/presentation/widgets/continue_reading_banner.dart';
 import '../../../quran_reader/presentation/pages/quran_reader_page.dart';
 import '../../../search/presentation/pages/ayah_search_page.dart';
 import '../../domain/entities/surah.dart';
