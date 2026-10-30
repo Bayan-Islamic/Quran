@@ -23,6 +23,22 @@ class MockSurahRepository implements SurahRepository {
 }
 
 void main() {
+  group('Surah revelation type', () {
+    test('isMeccan recognises the Arabic labels stored in the database', () {
+      const fatiha = Surah(id: 1, nameAr: 'الفاتحة', nameEn: 'Al-Fatihah', type: 'مكية', totalVerses: 7, pageNumber: 1);
+      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      expect(fatiha.isMeccan, isTrue);
+      expect(baqarah.isMeccan, isFalse);
+    });
+
+    test('isMeccan still accepts the legacy English spellings', () {
+      const meccan = Surah(id: 6, nameAr: 'الأنعام', nameEn: "Al-An'am", type: 'Meccan', totalVerses: 165, pageNumber: 128);
+      const medinan = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'Medinan', totalVerses: 286, pageNumber: 2);
+      expect(meccan.isMeccan, isTrue);
+      expect(medinan.isMeccan, isFalse);
+    });
+  });
+
   late MockSurahRepository repository;
   late SurahIndexCubit cubit;
 

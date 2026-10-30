@@ -4,7 +4,12 @@ class Surah extends Equatable {
   final int id;
   final String nameAr;
   final String nameEn;
-  final String type; // Meccan / Medinan
+
+  /// Revelation place, as stored in the database: "مكية" (Meccan) or "مدنية"
+  /// (Medinan). Legacy fixtures may use the English spellings, which
+  /// [isMeccan] also accepts.
+  final String type;
+
   final int totalVerses;
   final int pageNumber;
 
@@ -16,6 +21,15 @@ class Surah extends Equatable {
     required this.totalVerses,
     required this.pageNumber,
   });
+
+  /// Whether this surah was revealed in Mecca (مكية) rather than Medina (مدنية).
+  bool get isMeccan {
+    final normalized = type.trim().toLowerCase();
+    return normalized == 'مكية' ||
+        normalized == 'meccan' ||
+        normalized == 'makkah' ||
+        normalized == 'makki';
+  }
 
   @override
   List<Object?> get props => [id, nameAr, nameEn, type, totalVerses, pageNumber];

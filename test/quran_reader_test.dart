@@ -9,26 +9,73 @@ import 'package:bayan_quran/features/quran_reader/presentation/pages/quran_reade
 import 'package:bayan_quran/features/quran_reader/presentation/widgets/basmala_header.dart';
 import 'package:bayan_quran/features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'package:bayan_quran/features/surah_index/domain/entities/surah.dart';
-import 'package:bayan_quran/features/bookmark/presentation/cubit/bookmark_cubit.dart';
-import 'package:bayan_quran/features/bookmark/domain/repositories/bookmark_repository.dart';
-import 'package:bayan_quran/features/bookmark/domain/entities/bookmark.dart';
+import 'package:bayan_quran/features/bookmarks/presentation/cubit/bookmark_cubit.dart';
+import 'package:bayan_quran/features/bookmarks/domain/repositories/bookmark_repository.dart';
+import 'package:bayan_quran/features/bookmarks/domain/entities/bookmark.dart';
 
 class MockQuranReaderRepository implements QuranReaderRepository {
   @override
   Future<List<Ayah>> getAyahsBySurahId(int surahId) async {
     if (surahId == 1) {
       return [
-        const Ayah(id: 1, surahId: 1, verseNumber: 1, textUthmani: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', pageNumber: 1, juz: 1),
-        const Ayah(id: 2, surahId: 1, verseNumber: 2, textUthmani: 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ', pageNumber: 1, juz: 1),
+        const Ayah(
+          id: 1,
+          surahId: 1,
+          verseNumber: 1,
+          textUthmani: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+          textSearchNormalised: 'بسم الله الرحمن الرحيم',
+          pageNumber: 1,
+          juz: 1,
+          hizb: 1,
+        ),
+        const Ayah(
+          id: 2,
+          surahId: 1,
+          verseNumber: 2,
+          textUthmani: 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ',
+          textSearchNormalised: 'الحمد لله رب العالمين',
+          pageNumber: 1,
+          juz: 1,
+          hizb: 1,
+        ),
       ];
     } else if (surahId == 9) {
       return [
-        const Ayah(id: 1, surahId: 9, verseNumber: 1, textUthmani: 'بَرَآءَةٌ مِّنَ ٱللَّهِ وَرَسُولِهِۦ', pageNumber: 187, juz: 10),
+        const Ayah(
+          id: 1,
+          surahId: 9,
+          verseNumber: 1,
+          textUthmani: 'بَرَآءَةٌ مِّنَ ٱللَّهِ وَرَسُولِهِۦ',
+          textSearchNormalised: 'براءه من الله ورسوله',
+          pageNumber: 187,
+          juz: 10,
+          hizb: 19,
+        ),
       ];
     } else {
       return [
-        const Ayah(id: 1, surahId: 2, verseNumber: 1, textUthmani: 'الٓمٓ', pageNumber: 2, juz: 1),
-        const Ayah(id: 2, surahId: 2, verseNumber: 2, textUthmani: 'ذَٰلِكَ ٱلْكِتَٰبُ لَا رَيْبَ ۛ فِيهِ', pageNumber: 2, juz: 1),
+        const Ayah(
+          id: 1,
+          surahId: 2,
+          verseNumber: 1,
+          textUthmani: 'الٓمٓ',
+          textSearchNormalised: 'الم',
+          pageNumber: 2,
+          juz: 1,
+          hizb: 1,
+        ),
+        const Ayah(
+          id: 2,
+          surahId: 2,
+          verseNumber: 2,
+          textUthmani: 'ذَٰلِكَ ٱلْكِتَٰبُ لَا رَيْبَ ۛ فِيهِ',
+          textTajweed:
+              'ذَ<tajweed class=madda_normal>َٰلِكَ</tajweed> ٱلْكِتَ<tajweed class=madda_normal>ٰبُ</tajweed> لَا رَيْ<tajweed class=ghunnah>بَ ۛ ف</tajweed>ِيهِ',
+          textSearchNormalised: 'ذلك الكتاب لا ريب فيه',
+          pageNumber: 2,
+          juz: 1,
+          hizb: 1,
+        ),
       ];
     }
   }
@@ -121,6 +168,68 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(BasmalaHeader), findsOneWidget);
+    });
+  });
+
+  group('QuranReaderPage Tajweed Mode Tests', () {
+    Widget buildTestWidget(Surah surah) {
+      return MaterialApp(
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider<QuranReaderCubit>(
+              create: (_) => QuranReaderCubit(quranReaderRepository: repository),
+            ),
+            BlocProvider<BookmarkCubit>(
+              create: (_) => BookmarkCubit(bookmarkRepository: MockBookmarkRepository()),
+            ),
+          ],
+          child: QuranReaderPage(surah: surah),
+        ),
+      );
+    }
+
+    testWidgets('palette toggle flips tajweedMode on and back off', (tester) async {
+      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      await tester.pumpWidget(buildTestWidget(baqarah));
+      await tester.pumpAndSettle();
+
+      final cubit = tester.element(find.byType(QuranReaderPage)).read<QuranReaderCubit>();
+      expect(cubit.state.tajweedMode, isFalse);
+      expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.palette_outlined));
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.tajweedMode, isTrue);
+      expect(find.byIcon(Icons.palette), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.palette));
+      await tester.pumpAndSettle();
+      expect(cubit.state.tajweedMode, isFalse);
+    });
+
+    testWidgets('tajweed mode renders coloured spans for the verse', (tester) async {
+      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      await tester.pumpWidget(buildTestWidget(baqarah));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.palette_outlined));
+      await tester.pumpAndSettle();
+
+      // The coloured matn must be present as a rich text span tree.
+      expect(find.byType(SelectableText), findsWidgets);
+    });
+
+    testWidgets('the color guide opens from the info action', (tester) async {
+      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      await tester.pumpWidget(buildTestWidget(baqarah));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.info_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.text('دليل ألوان التجويد'), findsOneWidget);
+      expect(find.text('Tajweed Color Guide'), findsOneWidget);
     });
   });
 }

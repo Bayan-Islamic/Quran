@@ -6,18 +6,21 @@ import '../../domain/entities/surah.dart';
 class SurahCard extends StatelessWidget {
   final Surah surah;
   final VoidCallback onTap;
+  final VoidCallback? onMushafTap;
 
   const SurahCard({
     super.key,
     required this.surah,
     required this.onTap,
+    this.onMushafTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isMeccan = surah.type.toLowerCase() == 'meccan';
+    // The database stores the Arabic label directly ("مكية" / "مدنية").
+    final isMeccan = surah.isMeccan;
     final typeTextAr = isMeccan ? 'مكية' : 'مدنية';
 
     return Card(
@@ -25,6 +28,14 @@ class SurahCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        trailing: onMushafTap == null
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.menu_book_outlined),
+                color: AppColors.primaryEmerald,
+                tooltip: 'افتح في المصحف',
+                onPressed: onMushafTap,
+              ),
         leading: Container(
           width: 44,
           height: 44,

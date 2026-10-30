@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/arabic_number_converter.dart';
 import '../../domain/entities/ayah.dart';
+import 'tajweed_text_span.dart';
 
 class AyahItem extends StatelessWidget {
   final Ayah ayah;
   final double fontSize;
   final bool isHighlighted;
 
+  /// When true, the verse is rendered with the colour-coded Tajweed palette
+  /// (falling back to the plain Uthmani text when the edition is unavailable).
+  final bool tajweedMode;
+
   const AyahItem({
     super.key,
     required this.ayah,
     required this.fontSize,
     this.isHighlighted = false,
+    this.tajweedMode = false,
   });
 
   @override
@@ -20,6 +26,26 @@ class AyahItem extends StatelessWidget {
     final arabicVerseNum = ArabicNumberConverter.convert(ayah.verseNumber);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+
+    final useTajweed = tajweedMode && ayah.textTajweed.isNotEmpty;
+    final matnSpan = useTajweed
+        ? TajweedTextSpan.build(
+            ayah.textTajweed,
+            fontSize: fontSize,
+            defaultColor: textColor,
+          )
+        : TextSpan(
+            text: '${ayah.textUthmani} ',
+            style: TextStyle(
+              fontFamily: TajweedTextSpan.fontFamily,
+              fontFamilyFallback: TajweedTextSpan.fontFamilyFallback,
+              fontSize: fontSize,
+              height: TajweedTextSpan.lineHeight,
+              color: textColor,
+            ),
+          );
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -68,21 +94,12 @@ class AyahItem extends StatelessWidget {
           SelectableText.rich(
             TextSpan(
               children: [
+                matnSpan,
                 TextSpan(
-                  text: '${ayah.textUthmani} ',
+                  text: ' ﴿$arabicVerseNum﴾',
                   style: TextStyle(
-                    fontFamily: 'UthmanicHafs',
-                    fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
-                    fontSize: fontSize,
-                    height: 2.1,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  ),
-                ),
-                TextSpan(
-                  text: '﴿$arabicVerseNum﴾',
-                  style: TextStyle(
-                    fontFamily: 'UthmanicHafs',
-                    fontFamilyFallback: const ['Amiri', 'Arial', 'sans-serif'],
+                    fontFamily: TajweedTextSpan.fontFamily,
+                    fontFamilyFallback: TajweedTextSpan.fontFamilyFallback,
                     fontSize: fontSize * 0.85,
                     fontWeight: FontWeight.bold,
                     color: AppColors.accentGold,

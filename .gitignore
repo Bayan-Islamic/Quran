@@ -25,3 +25,16 @@
 .pub/
 build/
 test_quran.db
+
+# Python tooling
+__pycache__/
+*.py[cod]
+tools/cache/
+
+# Generated Mushaf page images (regenerate with tools/process_mushaf_pdf.py).
+# The directories are tracked via .gitkeep so `flutter build` finds them even
+# before the tool has run; the WebP pages themselves are ~65 MB of binaries.
+assets/mushaf/**/*.webp
+
+# Agent memory / local tooling
+.openhands/

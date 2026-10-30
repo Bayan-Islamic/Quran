@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bayan_quran/features/bookmark/domain/entities/bookmark.dart';
-import 'package:bayan_quran/features/bookmark/presentation/widgets/continue_reading_banner.dart';
+import 'package:bayan_quran/features/bookmarks/domain/entities/bookmark.dart';
+import 'package:bayan_quran/features/bookmarks/presentation/widgets/continue_reading_banner.dart';
 
 void main() {
   testWidgets('ContinueReadingBanner displays bookmark info and responds to tap', (WidgetTester tester) async {

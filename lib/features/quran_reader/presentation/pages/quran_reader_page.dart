@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../bookmark/presentation/cubit/bookmark_cubit.dart';
+import '../../../bookmarks/presentation/cubit/bookmark_cubit.dart';
 import '../../../surah_index/domain/entities/surah.dart';
 import '../cubit/quran_reader_cubit.dart';
 import '../cubit/quran_reader_state.dart';
 import '../widgets/ayah_item.dart';
 import '../widgets/basmala_header.dart';
+import '../widgets/tajweed_legend_sheet.dart';
 
 class QuranReaderPage extends StatefulWidget {
   final Surah surah;
@@ -153,6 +154,25 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
           ],
         ),
         actions: [
+          BlocBuilder<QuranReaderCubit, QuranReaderState>(
+            builder: (context, state) {
+              final enabled = state.tajweedMode;
+              return IconButton(
+                icon: Icon(enabled
+                    ? Icons.palette
+                    : Icons.palette_outlined),
+                color: enabled ? AppColors.accentGoldLight : null,
+                tooltip: 'وضع التجويد الملون',
+                onPressed: () =>
+                    context.read<QuranReaderCubit>().toggleTajweedMode(),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'دليل ألوان التجويد',
+            onPressed: () => TajweedLegendSheet.show(context),
+          ),
           IconButton(
             icon: const Icon(Icons.format_size),
             tooltip: 'حجم الخط',
@@ -213,6 +233,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
                     ayah: ayah,
                     fontSize: state.fontSize,
                     isHighlighted: isInitialVerse,
+                    tajweedMode: state.tajweedMode,
                   ),
                 );
               },
