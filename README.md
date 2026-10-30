@@ -25,6 +25,9 @@ network connection. It runs on Android, iOS, desktop and the web.
   qalqalah, silent letters). The preference is persisted, and an in-app colour
   guide explains each rule.
 - **Bookmarks** — long-press a verse to remember the last read position.
+- **Page-by-page Mushaf** (المصحف) — swipe through the 604 printed Madani
+  pages. Two aligned editions ship side by side: the plain Uthmani Mushaf and
+  the colour-coded Tajweed Mushaf, switchable from the reader and persisted.
 - **Light/dark themes** with an emerald and gold palette.
 
 ## Architecture
@@ -44,6 +47,7 @@ lib/
     quran_reader/       ayah reader
     search/             full-text search
     bookmarks/          last-read position
+    mushaf/             page-by-page Mushaf editions
 ```
 
 State management uses `flutter_bloc` cubits. The database is opened read-only
@@ -142,27 +146,50 @@ The normaliser strips diacritics and tatweel, folds alif variants to bare alif,
 
 ## Mushaf PDF pipeline
 
-`tools/process_mushaf_pdf.py` turns a Madani Mushaf PDF into optimised WebP
-pages for the authentic 604-page Mushaf mode. It renders each page at ~1260 px
-height, encodes WebP at quality 82, names the files `page_001.webp` …
-`page_604.webp`, and reports the total directory size (target: under 40 MB).
+`tools/process_mushaf_pdf.py` turns Madani Mushaf PDFs into the optimised WebP
+pages used by the page-by-page Mushaf reader. Two editions ship side by side
+and are aligned page-for-page, so `page_001.webp` of each shows the same
+Qur'anic page and switching edition keeps the reader in place:
+
+| edition    | source                                    | first PDF page | height | colours | size    |
+| ---------- | ----------------------------------------- | -------------- | ------ | ------- | ------- |
+| `standard` | طبعة مجمع الملك فهد (plain Uthmani)         | 4              | 1260   | 4       | ~31 MB  |
+| `tajweed`  | مصحف التجويد الملون (colour-coded Tajweed)  | 1              | 1260   | 5       | ~34 MB  |
+
+The standard scan opens with three cover leaves, so its Qur'an page 1 is PDF
+page 4; the Tajweed scan starts straight at Al-Fatihah.
+
+The `palette` encoder is what makes the pages small: it flattens the scanner's
+paper grain to pure white, then quantises the remaining flat colours and writes
+lossless WebP. Both editions land under the 35 MB budget.
 
 ```bash
 pip install pymupdf Pillow
 
-# From a local PDF
-python3 tools/process_mushaf_pdf.py --input mushaf.pdf --output assets/mushaf
+# Both editions from the cached PDFs
+python3 tools/process_mushaf_pdf.py --edition standard \
+    --input tools/cache/standard.pdf --output assets/mushaf/standard
+python3 tools/process_mushaf_pdf.py --edition tajweed \
+    --input tools/cache/tajweed.pdf --output assets/mushaf/tajweed
 
-# Download a public-domain 604-page Madani Mushaf PDF first
-python3 tools/process_mushaf_pdf.py --url <pdf-url> --output assets/mushaf
+# Download the public-domain PDF first
+python3 tools/process_mushaf_pdf.py --edition tajweed --url <pdf-url>
 
 # Render a subset while iterating
-python3 tools/process_mushaf_pdf.py --input mushaf.pdf --pages 1-10
+python3 tools/process_mushaf_pdf.py --edition standard \
+    --input tools/cache/standard.pdf --pages 1-10
 ```
 
-Options: `--input` / `--url` (mutually exclusive), `--output`, `--cache` (where
-a `--url` download is cached) and `--pages` (a 1-based selection such as
-`1-10` or `1,5,9`).
+Options: `--edition` (`standard` / `tajweed`, sets the page offset and
+compression preset), `--input` / `--url` (mutually exclusive), `--output`,
+`--cache` (where a `--url` download is cached), `--pages` (a 1-based selection
+such as `1-10` or `1,5,9`) and the overrides `--first-page`, `--height`,
+`--encoder` (`palette` / `lossy`), `--colors`, `--flatten-threshold` and
+`--quality`.
+
+The generated WebP pages are build artefacts (gitignored): run the tool once
+after cloning to enable Mushaf mode. The `assets/mushaf/<edition>/` directories
+are committed so the build finds them even before the tool has run.
 
 ## Testing
 

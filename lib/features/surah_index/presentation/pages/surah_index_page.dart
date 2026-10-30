@@ -4,6 +4,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../bookmarks/presentation/cubit/bookmark_cubit.dart';
 import '../../../bookmarks/presentation/cubit/bookmark_state.dart';
 import '../../../bookmarks/presentation/widgets/continue_reading_banner.dart';
+import '../../../mushaf/presentation/cubit/mushaf_cubit.dart';
+import '../../../mushaf/presentation/pages/mushaf_page.dart';
 import '../../../quran_reader/presentation/pages/quran_reader_page.dart';
 import '../../../search/presentation/pages/ayah_search_page.dart';
 import '../../domain/entities/surah.dart';
@@ -52,6 +54,32 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
     );
   }
 
+  /// Opens the page-by-page Mushaf at the tapped surah's first page.
+  Future<void> _openMushaf(int pageNumber) async {
+    final cubit = context.read<MushafCubit>();
+    final available = await cubit.isAvailable();
+    if (!mounted) return;
+
+    if (!available) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'صفحات المصحف غير مضمّنة. شغّل tools/process_mushaf_pdf.py أولاً.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (routeContext) => MushafPage(initialPage: pageNumber),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDarkMode;
@@ -68,6 +96,11 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_book),
+            tooltip: 'المصحف (صفحة بصفحة)',
+            onPressed: () => _openMushaf(1),
+          ),
           IconButton(
             icon: const Icon(Icons.manage_search),
             tooltip: 'البحث في الآيات',
@@ -191,6 +224,7 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
                           return SurahCard(
                             surah: surah,
                             onTap: () => _navigateToSurah(surah),
+                            onMushafTap: () => _openMushaf(surah.pageNumber),
                           );
                         },
                       );

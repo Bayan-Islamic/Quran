@@ -50,6 +50,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/quran.db
+    # Page-by-page Mushaf editions (WebP). Regenerate with
+    # `python3 tools/process_mushaf_pdf.py`; the directories are committed
+    # (empty apart from .gitkeep) so the build finds them offline.
+    - assets/mushaf/standard/
+    - assets/mushaf/tajweed/
 
   fonts:
     - family: UthmanicHafs

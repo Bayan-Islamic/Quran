@@ -8,6 +8,8 @@ import 'core/theme/app_theme.dart';
 import 'features/bookmarks/data/datasources/bookmark_local_data_source.dart';
 import 'features/bookmarks/data/repositories/bookmark_repository_impl.dart';
 import 'features/bookmarks/presentation/cubit/bookmark_cubit.dart';
+import 'features/mushaf/data/repositories/mushaf_preferences_impl.dart';
+import 'features/mushaf/presentation/cubit/mushaf_cubit.dart';
 import 'features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'features/quran_reader/data/repositories/quran_reader_preferences_impl.dart';
 import 'features/quran_reader/data/repositories/quran_reader_repository_impl.dart';
@@ -74,6 +76,15 @@ class _BayanQuranAppState extends State<BayanQuranApp> {
         ),
         BlocProvider<SearchCubit>(
           create: (context) => SearchCubit(searchRepository: searchRepository),
+        ),
+        BlocProvider<MushafCubit>(
+          create: (context) => MushafCubit(
+            preferences: widget.sharedPreferences == null
+                ? null
+                : MushafPreferencesImpl(
+                    sharedPreferences: widget.sharedPreferences!,
+                  ),
+          )..loadPreferences(),
         ),
         if (widget.sharedPreferences != null)
           BlocProvider<BookmarkCubit>(
