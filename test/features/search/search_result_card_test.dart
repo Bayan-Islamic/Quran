@@ -15,24 +15,25 @@ const _surah = Surah(
   pageNumber: 1,
 );
 
-SearchResult _result(String text) => SearchResult(
+SearchResult _result(String text, {int page = 1, int juz = 1}) => SearchResult(
       ayah: Ayah(
         id: 1,
         surahId: 1,
         verseNumber: 1,
         textUthmani: text,
         textSearchNormalised: text,
-        pageNumber: 1,
-        juz: 1,
+        pageNumber: page,
+        juz: juz,
         hizb: 1,
       ),
       surah: _surah,
     );
 
 List<TextSpan> _spansOf(WidgetTester tester) {
-  final richText = tester.widgetList<RichText>(find.byType(RichText)).firstWhere(
-        (w) => w.text is TextSpan && (w.text as TextSpan).children != null,
-      );
+  final richText =
+      tester.widgetList<RichText>(find.byType(RichText)).firstWhere(
+            (w) => w.text is TextSpan && (w.text as TextSpan).children != null,
+          );
   return (richText.text as TextSpan).children!.cast<TextSpan>();
 }
 
@@ -59,7 +60,8 @@ void main() {
     expect(highlighted, hasLength(1));
     // The highlight keeps the original diacritised spelling.
     expect(highlighted.single, equals('ٱلرَّحْمَٰنِ'));
-    expect(spans.map((s) => s.text).join(), equals('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'));
+    expect(spans.map((s) => s.text).join(),
+        equals('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'));
   });
 
   testWidgets('SearchResultCard highlights a mid-word match without diacritics',
@@ -144,13 +146,55 @@ void main() {
     );
 
     final spans = _spansOf(tester);
-    final highlighted =
-        spans.where((s) => s.style?.backgroundColor != null).map((s) => s.text).toList();
+    final highlighted = spans
+        .where((s) => s.style?.backgroundColor != null)
+        .map((s) => s.text)
+        .toList();
     expect(highlighted, hasLength(1));
     // The slice is taken from the sanitised text, so it carries U+06E0, not U+06DF.
     expect(highlighted.single, contains('هُدًى'));
     final joined = spans.map((s) => s.text).join();
     expect(joined.contains('\u06df'), isFalse);
     expect(joined.contains('\u06e0'), isTrue);
+  });
+
+  testWidgets('SearchResultCard offers a Mushaf jump when a callback is given',
+      (tester) async {
+    int? openedPage;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchResultCard(
+            result: _result('بِسْمِ ٱللَّهِ', page: 42, juz: 3),
+            searchQuery: '',
+            onTap: () {},
+            onOpenMushaf: () => openedPage = 42,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('صفحة ٤٢'), findsOneWidget);
+    expect(find.text('افتح في المصحف'), findsOneWidget);
+    await tester.tap(find.text('افتح في المصحف'));
+    expect(openedPage, 42);
+  });
+
+  testWidgets('SearchResultCard hides the Mushaf action without a callback',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchResultCard(
+            result: _result('بِسْمِ ٱللَّهِ', page: 42),
+            searchQuery: '',
+            onTap: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('صفحة ٤٢'), findsNothing);
+    expect(find.text('افتح في المصحف'), findsNothing);
   });
 }

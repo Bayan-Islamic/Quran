@@ -12,6 +12,7 @@ import 'package:bayan_quran/features/surah_index/domain/entities/surah.dart';
 import 'package:bayan_quran/features/bookmarks/presentation/cubit/bookmark_cubit.dart';
 import 'package:bayan_quran/features/bookmarks/domain/repositories/bookmark_repository.dart';
 import 'package:bayan_quran/features/bookmarks/domain/entities/bookmark.dart';
+import 'package:bayan_quran/features/bookmarks/domain/entities/mushaf_bookmark.dart';
 
 class MockQuranReaderRepository implements QuranReaderRepository {
   @override
@@ -85,7 +86,14 @@ class MockBookmarkRepository implements BookmarkRepository {
   @override
   Future<Bookmark?> getLastRead() async => null;
   @override
-  Future<void> saveLastRead({required int surahId, required String surahNameAr, required int verseNumber}) async {}
+  Future<void> saveLastRead(
+      {required int surahId,
+      required String surahNameAr,
+      required int verseNumber}) async {}
+  @override
+  Future<void> saveMushafPage(int? pageNumber) async {}
+  @override
+  Future<MushafBookmark?> getMushafPage() async => null;
 }
 
 void main() {
@@ -134,10 +142,12 @@ void main() {
         home: MultiBlocProvider(
           providers: [
             BlocProvider<QuranReaderCubit>(
-              create: (_) => QuranReaderCubit(quranReaderRepository: repository),
+              create: (_) =>
+                  QuranReaderCubit(quranReaderRepository: repository),
             ),
             BlocProvider<BookmarkCubit>(
-              create: (_) => BookmarkCubit(bookmarkRepository: MockBookmarkRepository()),
+              create: (_) =>
+                  BookmarkCubit(bookmarkRepository: MockBookmarkRepository()),
             ),
           ],
           child: QuranReaderPage(surah: surah),
@@ -145,8 +155,16 @@ void main() {
       );
     }
 
-    testWidgets('Surah 1 (Al-Fatiha) does NOT display BasmalaHeader above verse 1', (tester) async {
-      const fatiha = Surah(id: 1, nameAr: 'الفاتحة', nameEn: 'Al-Fatihah', type: 'مكية', totalVerses: 7, pageNumber: 1);
+    testWidgets(
+        'Surah 1 (Al-Fatiha) does NOT display BasmalaHeader above verse 1',
+        (tester) async {
+      const fatiha = Surah(
+          id: 1,
+          nameAr: 'الفاتحة',
+          nameEn: 'Al-Fatihah',
+          type: 'مكية',
+          totalVerses: 7,
+          pageNumber: 1);
       await tester.pumpWidget(buildTestWidget(fatiha));
       await tester.pumpAndSettle();
 
@@ -154,16 +172,30 @@ void main() {
       expect(find.textContaining('بِسْمِ'), findsOneWidget);
     });
 
-    testWidgets('Surah 9 (At-Tawbah) does NOT display BasmalaHeader', (tester) async {
-      const tawbah = Surah(id: 9, nameAr: 'التوبة', nameEn: 'At-Tawbah', type: 'مدنية', totalVerses: 129, pageNumber: 187);
+    testWidgets('Surah 9 (At-Tawbah) does NOT display BasmalaHeader',
+        (tester) async {
+      const tawbah = Surah(
+          id: 9,
+          nameAr: 'التوبة',
+          nameEn: 'At-Tawbah',
+          type: 'مدنية',
+          totalVerses: 129,
+          pageNumber: 187);
       await tester.pumpWidget(buildTestWidget(tawbah));
       await tester.pumpAndSettle();
 
       expect(find.byType(BasmalaHeader), findsNothing);
     });
 
-    testWidgets('Surah 2 (Al-Baqarah) displays BasmalaHeader once at top', (tester) async {
-      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+    testWidgets('Surah 2 (Al-Baqarah) displays BasmalaHeader once at top',
+        (tester) async {
+      const baqarah = Surah(
+          id: 2,
+          nameAr: 'البقرة',
+          nameEn: 'Al-Baqarah',
+          type: 'مدنية',
+          totalVerses: 286,
+          pageNumber: 2);
       await tester.pumpWidget(buildTestWidget(baqarah));
       await tester.pumpAndSettle();
 
@@ -177,10 +209,12 @@ void main() {
         home: MultiBlocProvider(
           providers: [
             BlocProvider<QuranReaderCubit>(
-              create: (_) => QuranReaderCubit(quranReaderRepository: repository),
+              create: (_) =>
+                  QuranReaderCubit(quranReaderRepository: repository),
             ),
             BlocProvider<BookmarkCubit>(
-              create: (_) => BookmarkCubit(bookmarkRepository: MockBookmarkRepository()),
+              create: (_) =>
+                  BookmarkCubit(bookmarkRepository: MockBookmarkRepository()),
             ),
           ],
           child: QuranReaderPage(surah: surah),
@@ -188,12 +222,20 @@ void main() {
       );
     }
 
-    testWidgets('palette toggle flips tajweedMode on and back off', (tester) async {
-      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+    testWidgets('palette toggle flips tajweedMode on and back off',
+        (tester) async {
+      const baqarah = Surah(
+          id: 2,
+          nameAr: 'البقرة',
+          nameEn: 'Al-Baqarah',
+          type: 'مدنية',
+          totalVerses: 286,
+          pageNumber: 2);
       await tester.pumpWidget(buildTestWidget(baqarah));
       await tester.pumpAndSettle();
 
-      final cubit = tester.element(find.byType(QuranReaderPage)).read<QuranReaderCubit>();
+      final cubit =
+          tester.element(find.byType(QuranReaderPage)).read<QuranReaderCubit>();
       expect(cubit.state.tajweedMode, isFalse);
       expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
 
@@ -208,8 +250,15 @@ void main() {
       expect(cubit.state.tajweedMode, isFalse);
     });
 
-    testWidgets('tajweed mode renders coloured spans for the verse', (tester) async {
-      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+    testWidgets('tajweed mode renders coloured spans for the verse',
+        (tester) async {
+      const baqarah = Surah(
+          id: 2,
+          nameAr: 'البقرة',
+          nameEn: 'Al-Baqarah',
+          type: 'مدنية',
+          totalVerses: 286,
+          pageNumber: 2);
       await tester.pumpWidget(buildTestWidget(baqarah));
       await tester.pumpAndSettle();
 
@@ -221,7 +270,13 @@ void main() {
     });
 
     testWidgets('the color guide opens from the info action', (tester) async {
-      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      const baqarah = Surah(
+          id: 2,
+          nameAr: 'البقرة',
+          nameEn: 'Al-Baqarah',
+          type: 'مدنية',
+          totalVerses: 286,
+          pageNumber: 2);
       await tester.pumpWidget(buildTestWidget(baqarah));
       await tester.pumpAndSettle();
 

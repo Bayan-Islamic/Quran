@@ -74,11 +74,11 @@ class TajweedColors {
   /// The class names in [group] order, for building the in-app colour guide.
   static const List<TajweedLegendEntry> legend = [
     TajweedLegendEntry('المدود', 'Madd (elongation)', maddLong),
-    TajweedLegendEntry('المد المتصل/المنفصل', 'Connected / separated madd',
-        maddConnected),
+    TajweedLegendEntry(
+        'المد المتصل/المنفصل', 'Connected / separated madd', maddConnected),
     TajweedLegendEntry('المد الطبيعي', 'Natural madd', maddShort),
-    TajweedLegendEntry('الغنة والإخفاء', 'Ghunnah / Ikhfa (nasalisation)',
-        ghunnah),
+    TajweedLegendEntry(
+        'الغنة والإخفاء', 'Ghunnah / Ikhfa (nasalisation)', ghunnah),
     TajweedLegendEntry('القلقلة', 'Qalqalah (echo)', qalqalah),
     TajweedLegendEntry('ما لا يُلفظ', 'Silent / assimilated', silent),
   ];
@@ -114,7 +114,11 @@ class TajweedTextSpan {
   TajweedTextSpan._();
 
   static const String fontFamily = 'UthmanicHafs';
-  static const List<String> fontFamilyFallback = ['Amiri', 'Arial', 'sans-serif'];
+  static const List<String> fontFamilyFallback = [
+    'Amiri',
+    'Arial',
+    'sans-serif'
+  ];
   static const double lineHeight = 2.1;
 
   static const TextStyle _base = TextStyle(

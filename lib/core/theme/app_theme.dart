@@ -30,7 +30,8 @@ class AppTheme {
           side: const BorderSide(color: AppColors.lightBorder, width: 0.5),
         ),
       ),
-      textTheme: GoogleFonts.amiriTextTheme(ThemeData.light().textTheme).copyWith(
+      textTheme:
+          GoogleFonts.amiriTextTheme(ThemeData.light().textTheme).copyWith(
         bodyMedium: GoogleFonts.amiri(
           color: AppColors.lightTextPrimary,
           fontSize: 16,
@@ -66,7 +67,8 @@ class AppTheme {
           side: const BorderSide(color: AppColors.darkBorder, width: 0.5),
         ),
       ),
-      textTheme: GoogleFonts.amiriTextTheme(ThemeData.dark().textTheme).copyWith(
+      textTheme:
+          GoogleFonts.amiriTextTheme(ThemeData.dark().textTheme).copyWith(
         bodyMedium: GoogleFonts.amiri(
           color: AppColors.darkTextPrimary,
           fontSize: 16,

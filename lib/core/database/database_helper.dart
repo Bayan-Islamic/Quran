@@ -40,8 +40,10 @@ class DatabaseHelper {
     final factory = await resolveDatabaseFactory();
     final path = await resolveDatabasePath(factory, _databaseFileName);
     final data = await rootBundle.load(assetPath);
-    final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    final bytes =
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     await seedDatabaseFromAsset(factory, path, bytes);
-    return factory.openDatabase(path, options: OpenDatabaseOptions(readOnly: true));
+    return factory.openDatabase(path,
+        options: OpenDatabaseOptions(readOnly: true));
   }
 }

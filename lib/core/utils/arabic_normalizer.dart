@@ -109,4 +109,3 @@ class ArabicNormalizer {
   /// also covers the vowel marks trailing the last matched letter.
   static bool isDiacritic(String ch) => _diacritics.hasMatch(ch);
 }
-

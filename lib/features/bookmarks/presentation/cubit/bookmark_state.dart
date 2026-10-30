@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/bookmark.dart';
+import '../../domain/entities/mushaf_bookmark.dart';
 
 abstract class BookmarkState extends Equatable {
   const BookmarkState();
@@ -18,9 +19,10 @@ class BookmarkLoading extends BookmarkState {
 
 class BookmarkLoaded extends BookmarkState {
   final Bookmark? bookmark;
+  final MushafBookmark? mushafBookmark;
 
-  const BookmarkLoaded({this.bookmark});
+  const BookmarkLoaded({this.bookmark, this.mushafBookmark});
 
   @override
-  List<Object?> get props => [bookmark];
+  List<Object?> get props => [bookmark, mushafBookmark];
 }

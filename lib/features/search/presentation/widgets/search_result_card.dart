@@ -9,11 +9,20 @@ class SearchResultCard extends StatelessWidget {
   final String searchQuery;
   final VoidCallback onTap;
 
+  /// Opens the result at its Qur'an page in the page-by-page Mushaf. When
+  /// null, no Mushaf action is offered.
+  final VoidCallback? onOpenMushaf;
+
+  /// Opens the offline Tafsir/translation sheet for the result.
+  final VoidCallback? onShowTafsir;
+
   const SearchResultCard({
     super.key,
     required this.result,
     required this.searchQuery,
     required this.onTap,
+    this.onOpenMushaf,
+    this.onShowTafsir,
   });
 
   /// Highlights every occurrence of [query] inside the diacritised [text].
@@ -60,20 +69,26 @@ class SearchResultCard extends StatelessWidget {
         match = normalized.text.indexOf(normQuery, match + normQuery.length)) {
       final start = normalized.offsets[match];
       int end = normalized.offsets[match + normQuery.length - 1] + 1;
-      while (end < displayText.length && ArabicNormalizer.isDiacritic(displayText[end])) {
+      while (end < displayText.length &&
+          ArabicNormalizer.isDiacritic(displayText[end])) {
         end++;
       }
       if (start > cursor) {
-        spans.add(TextSpan(text: displayText.substring(cursor, start), style: defaultStyle));
+        spans.add(TextSpan(
+            text: displayText.substring(cursor, start), style: defaultStyle));
       }
-      spans.add(TextSpan(text: displayText.substring(start, end), style: highlightStyle));
+      spans.add(TextSpan(
+          text: displayText.substring(start, end), style: highlightStyle));
       cursor = end;
     }
 
     if (cursor < displayText.length) {
-      spans.add(TextSpan(text: displayText.substring(cursor), style: defaultStyle));
+      spans.add(
+          TextSpan(text: displayText.substring(cursor), style: defaultStyle));
     }
-    return spans.isEmpty ? [TextSpan(text: displayText, style: defaultStyle)] : spans;
+    return spans.isEmpty
+        ? [TextSpan(text: displayText, style: defaultStyle)]
+        : spans;
   }
 
   @override
@@ -87,6 +102,7 @@ class SearchResultCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onShowTafsir,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -99,16 +115,22 @@ class SearchResultCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryEmerald.withValues(alpha: 0.12),
+                          color:
+                              AppColors.primaryEmerald.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
                           'سورة ${surah.nameAr}',
                           style: const TextStyle(
                             fontFamily: 'UthmanicHafs',
-      fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
+                            fontFamilyFallback: [
+                              'Amiri',
+                              'Arial',
+                              'sans-serif'
+                            ],
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryEmerald,
                             fontSize: 14,
@@ -117,7 +139,8 @@ class SearchResultCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.accentGold.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(16),
@@ -137,7 +160,9 @@ class SearchResultCard extends StatelessWidget {
                     'الجزء ${ArabicNumberConverter.convert(ayah.juz)}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -147,9 +172,40 @@ class SearchResultCard extends StatelessWidget {
                 textAlign: TextAlign.right,
                 textDirection: TextDirection.rtl,
                 text: TextSpan(
-                  children: _buildHighlightedText(context, ayah.textUthmani, searchQuery),
+                  children: _buildHighlightedText(
+                      context, ayah.textUthmani, searchQuery),
                 ),
               ),
+              if (onOpenMushaf != null) ...[
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'صفحة ${ArabicNumberConverter.convert(ayah.pageNumber)} · الجزء ${ArabicNumberConverter.convert(ayah.juz)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: onOpenMushaf,
+                      icon: const Icon(Icons.menu_book_outlined, size: 18),
+                      label: const Text('افتح في المصحف'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryEmerald,
+                        textStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

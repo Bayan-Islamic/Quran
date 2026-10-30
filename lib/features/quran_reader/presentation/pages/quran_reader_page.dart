@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/database/database_helper.dart';
 import '../../../bookmarks/presentation/cubit/bookmark_cubit.dart';
+import '../../../bookmarks/presentation/cubit/bookmark_state.dart';
 import '../../../surah_index/domain/entities/surah.dart';
+import '../../../tafsir/data/datasources/tafsir_local_data_source.dart';
+import '../../../tafsir/data/repositories/tafsir_repository_impl.dart';
+import '../../../tafsir/presentation/cubit/tafsir_cubit.dart';
+import '../../../tafsir/presentation/widgets/tafsir_sheet.dart';
+import '../../domain/entities/ayah.dart';
 import '../cubit/quran_reader_cubit.dart';
 import '../cubit/quran_reader_state.dart';
 import '../widgets/ayah_item.dart';
@@ -53,6 +60,22 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  void _showTafsir(Ayah ayah) {
+    final cubit = TafsirCubit(
+      tafsirRepository: TafsirRepositoryImpl(
+        localDataSource: TafsirLocalDataSourceImpl(
+          databaseHelper: DatabaseHelper.instance,
+        ),
+      ),
+    );
+    TafsirSheet.show(
+      context,
+      cubit: cubit,
+      ayah: ayah,
+      surah: widget.surah,
+    ).whenComplete(cubit.close);
   }
 
   void _scrollToInitialVerse(int itemCount, bool showBasmala) {
@@ -158,9 +181,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
             builder: (context, state) {
               final enabled = state.tajweedMode;
               return IconButton(
-                icon: Icon(enabled
-                    ? Icons.palette
-                    : Icons.palette_outlined),
+                icon: Icon(enabled ? Icons.palette : Icons.palette_outlined),
                 color: enabled ? AppColors.accentGoldLight : null,
                 tooltip: 'وضع التجويد الملون',
                 onPressed: () =>
@@ -227,14 +248,25 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
                 final isInitialVerse = widget.initialVerseNumber != null &&
                     ayah.verseNumber == widget.initialVerseNumber;
 
-                return InkWell(
-                  onLongPress: () => _saveBookmark(ayah.verseNumber),
-                  child: AyahItem(
-                    ayah: ayah,
-                    fontSize: state.fontSize,
-                    isHighlighted: isInitialVerse,
-                    tajweedMode: state.tajweedMode,
-                  ),
+                return BlocBuilder<BookmarkCubit, BookmarkState>(
+                  builder: (context, bookmarkState) {
+                    final bookmark = bookmarkState is BookmarkLoaded
+                        ? bookmarkState.bookmark
+                        : null;
+                    final isBookmarked = bookmark != null &&
+                        bookmark.surahId == widget.surah.id &&
+                        bookmark.verseNumber == ayah.verseNumber;
+
+                    return AyahItem(
+                      ayah: ayah,
+                      fontSize: state.fontSize,
+                      isHighlighted: isInitialVerse,
+                      tajweedMode: state.tajweedMode,
+                      isBookmarked: isBookmarked,
+                      onTap: () => _showTafsir(ayah),
+                      onLongPress: () => _saveBookmark(ayah.verseNumber),
+                    );
+                  },
                 );
               },
             );

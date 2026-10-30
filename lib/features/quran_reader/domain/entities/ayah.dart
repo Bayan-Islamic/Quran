@@ -44,4 +44,3 @@ class Ayah extends Equatable {
         hizb,
       ];
 }
-

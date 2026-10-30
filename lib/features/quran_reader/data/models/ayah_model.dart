@@ -24,8 +24,8 @@ class AyahModel extends Ayah {
       textUthmani: ArabicNormalizer.sanitizeForDisplay(textUthmani),
       // The markup is sanitised at build time, but keep the call so a stale or
       // hand-edited database still renders cleanly.
-      textTajweed:
-          ArabicNormalizer.sanitizeForDisplay((map['text_tajweed'] as String?) ?? ''),
+      textTajweed: ArabicNormalizer.sanitizeForDisplay(
+          (map['text_tajweed'] as String?) ?? ''),
       textSearchNormalised:
           (map['text_search_normalised'] as String?) ?? textUthmani,
       pageNumber: map['page_number'] as int,

@@ -1,6 +1,15 @@
 class ArabicNumberConverter {
   static const List<String> _arabicDigits = [
-    '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'
+    '٠',
+    '١',
+    '٢',
+    '٣',
+    '٤',
+    '٥',
+    '٦',
+    '٧',
+    '٨',
+    '٩'
   ];
 
   static String convert(int number) {

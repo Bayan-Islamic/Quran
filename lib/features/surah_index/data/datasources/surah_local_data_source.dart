@@ -32,7 +32,11 @@ class SurahLocalDataSourceImpl implements SurahLocalDataSource {
     final List<Map<String, dynamic>> maps = await db.query(
       'surahs',
       where: 'name_ar LIKE ? OR name_en LIKE ? OR id = ?',
-      whereArgs: ['%$cleanQuery%', '%$cleanQuery%', int.tryParse(cleanQuery) ?? -1],
+      whereArgs: [
+        '%$cleanQuery%',
+        '%$cleanQuery%',
+        int.tryParse(cleanQuery) ?? -1
+      ],
       orderBy: 'id ASC',
     );
     return maps.map((map) => SurahModel.fromMap(map)).toList();
