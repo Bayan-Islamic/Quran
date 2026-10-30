@@ -14,12 +14,19 @@ Schema
 
 ``ayahs``
     ``id`` (1-6236), ``surah_id``, ``verse_number``, ``text_uthmani``,
-    ``text_search_normalised``, ``page_number``, ``juz``, ``hizb``.
+    ``text_tajweed``, ``text_search_normalised``, ``page_number``, ``juz``,
+    ``hizb``.
 
 The ``text_search_normalised`` column holds the Arabic-normalised form of
 ``text_uthmani`` so full-text search never has to normalise at runtime.  The
 normalisation must stay byte-identical to
 ``lib/core/utils/arabic_normalizer.dart``.
+
+``text_tajweed`` holds the same verse with ``<tajweed class="...">`` markup
+from the ``uthmani_tajweed`` edition, used by the colour-coded Tajweed mode.
+The ``<span class="end">N</span>`` verse markers are stripped (the reader draws
+its own verse number) and the glyph sanitiser is applied, so the two text
+columns stay visually consistent.
 
 Usage::
 
@@ -50,6 +57,10 @@ VERSES_URL = (
 )
 CHAPTERS_URL = "https://api.quran.com/api/v4/chapters?language=en"
 CHAPTERS_AR_URL = "https://api.quran.com/api/v4/chapters?language=ar"
+TAJWEED_URL = (
+    "https://api.quran.com/api/v4/quran/verses/uthmani_tajweed"
+    "?chapter_number={chapter}"
+)
 
 USER_AGENT = "bayan-quran-db-builder/1.0 (+https://github.com/bayan-islamic/quran)"
 
@@ -143,6 +154,35 @@ def strip_basmala_prefix(text: str) -> str:
     return stripped
 
 
+_TAJWEED_END_MARKER = re.compile(r"<span class=end>\d+</span>\s*")
+_TAG = re.compile(r"<[^>]*>")
+
+
+def clean_tajweed_markup(text: str) -> str:
+    """Strip non-tajweed markup from an ``uthmani_tajweed`` verse.
+
+    Removes the ``<span class=end>N</span>`` verse marker (the reader draws its
+    own verse number) and any stray ``>`` left by a malformed source tag (e.g.
+    the orphan ``>`` in 32:3), then applies the shared glyph sanitiser so the
+    Tajweed and plain columns render the same shapes.
+    """
+    text = _TAJWEED_END_MARKER.sub("", text)
+    text = _strip_stray_gt(text)
+    return sanitize_quranic_glyphs(text).strip()
+
+
+def _strip_stray_gt(text: str) -> str:
+    """Drop ``>`` characters that are not part of a well-formed ``<...>`` tag."""
+    tags: list[str] = []
+
+    def protect(match: re.Match[str]) -> str:
+        tags.append(match.group(0))
+        return f"\x00{len(tags) - 1}\x00"
+
+    protected = _TAG.sub(protect, text).replace(">", "")
+    return re.sub(r"\x00(\d+)\x00", lambda m: tags[int(m.group(1))], protected)
+
+
 def _download(url: str, cache_file: Path, offline: bool) -> dict:
     if cache_file.exists():
         return json.loads(cache_file.read_text(encoding="utf-8"))
@@ -180,6 +220,21 @@ def build_verses(offline: bool) -> list[tuple[int, int, str, int, int, int]]:
     return rows
 
 
+def build_tajweed(offline: bool) -> dict[str, str]:
+    """Return ``verse_key -> tajweed markup`` from the uthmani_tajweed edition."""
+    verses: dict[str, str] = {}
+    for chapter in range(1, EXPECTED_SURAHS + 1):
+        url = TAJWEED_URL.format(chapter=chapter)
+        data = _download(url, CACHE_DIR / f"tajweed_{chapter:03d}.json", offline)
+        for verse in data["verses"]:
+            text = clean_tajweed_markup(verse["text_uthmani_tajweed"])
+            surah_id, verse_number = (int(p) for p in verse["verse_key"].split(":"))
+            if surah_id not in (SURAH_FATIHA, SURAH_TAWBAH) and verse_number == 1:
+                text = strip_basmala_prefix(text)
+            verses[verse["verse_key"]] = text
+    return verses
+
+
 def build_surahs(offline: bool) -> list[tuple[int, str, str, str, int, int]]:
     en = _download(CHAPTERS_URL, CACHE_DIR / "chapters_en.json", offline)["chapters"]
     ar = _download(CHAPTERS_AR_URL, CACHE_DIR / "chapters_ar.json", offline)["chapters"]
@@ -205,6 +260,7 @@ def build_surahs(offline: bool) -> list[tuple[int, str, str, str, int, int]]:
 def write_database(
     surahs: list[tuple[int, str, str, str, int, int]],
     verses: list[tuple[int, int, str, int, int, int]],
+    tajweed: dict[str, str],
     output: Path,
 ) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -232,6 +288,7 @@ def write_database(
                 surah_id                INTEGER NOT NULL,
                 verse_number            INTEGER NOT NULL,
                 text_uthmani            TEXT    NOT NULL,
+                text_tajweed            TEXT    NOT NULL,
                 text_search_normalised  TEXT    NOT NULL,
                 page_number             INTEGER NOT NULL,
                 juz                     INTEGER NOT NULL,
@@ -255,9 +312,20 @@ def write_database(
 
         connection.executemany(
             "INSERT INTO ayahs (id, surah_id, verse_number, text_uthmani, "
-            "text_search_normalised, page_number, juz, hizb) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "text_tajweed, text_search_normalised, page_number, juz, hizb) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
-                (index, surah_id, verse_number, text, normalize_arabic(text), page, juz, hizb)
+                (
+                    index,
+                    surah_id,
+                    verse_number,
+                    text,
+                    tajweed.get(f"{surah_id}:{verse_number}", ""),
+                    normalize_arabic(text),
+                    page,
+                    juz,
+                    hizb,
+                )
                 for index, (surah_id, verse_number, text, page, juz, hizb) in enumerate(
                     verses, start=1
                 )
@@ -273,12 +341,15 @@ def write_database(
 def validate(
     surahs: list[tuple[int, str, str, str, int, int]],
     verses: list[tuple[int, int, str, int, int, int]],
+    tajweed: dict[str, str],
 ) -> None:
     errors: list[str] = []
     if len(surahs) != EXPECTED_SURAHS:
         errors.append(f"expected {EXPECTED_SURAHS} surahs, got {len(surahs)}")
     if len(verses) != EXPECTED_AYAHS:
         errors.append(f"expected {EXPECTED_AYAHS} ayahs, got {len(verses)}")
+    if len(tajweed) != EXPECTED_AYAHS:
+        errors.append(f"expected {EXPECTED_AYAHS} tajweed verses, got {len(tajweed)}")
 
     per_surah: dict[int, int] = {}
     for surah_id, _, _, _, _, _ in verses:
@@ -305,6 +376,22 @@ def validate(
                 )
                 break
 
+    for verse_key, text in tajweed.items():
+        if not text:
+            errors.append(f"tajweed text missing for verse {verse_key}")
+            continue
+        if "<span" in text:
+            errors.append(f"tajweed verse {verse_key} still contains a <span> marker")
+        if "<" in text and not re.search(r"<tajweed class=[^>]+>", text):
+            errors.append(f"tajweed verse {verse_key} has malformed markup")
+        for mark in _UNSUPPORTED_GLYPH_MAP:
+            if mark in text:
+                errors.append(
+                    f"tajweed verse {verse_key} still contains the unsupported "
+                    f"glyph U+{ord(mark):04X}"
+                )
+                break
+
     if errors:
         raise SystemExit("validation failed:\n  - " + "\n  - ".join(errors))
 
@@ -321,8 +408,9 @@ def main() -> int:
 
     surahs = build_surahs(args.offline)
     verses = build_verses(args.offline)
-    validate(surahs, verses)
-    write_database(surahs, verses, args.output)
+    tajweed = build_tajweed(args.offline)
+    validate(surahs, verses, tajweed)
+    write_database(surahs, verses, tajweed, args.output)
     size_mb = os.path.getsize(args.output) / (1024 * 1024)
     print(
         f"wrote {args.output} ({size_mb:.2f} MB) - "

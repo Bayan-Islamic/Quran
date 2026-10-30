@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:bayan_quran/core/database/database_helper.dart';
+import 'package:bayan_quran/core/utils/arabic_normalizer.dart';
+import 'package:bayan_quran/features/quran_reader/presentation/widgets/tajweed_text_span.dart';
 import 'package:bayan_quran/features/surah_index/data/datasources/surah_local_data_source.dart';
 import 'package:bayan_quran/features/surah_index/data/repositories/surah_repository_impl.dart';
 import 'package:bayan_quran/features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
@@ -171,6 +174,82 @@ void main() {
     final text = rows.first['text_uthmani'] as String;
     expect(text.contains('\u06df'), isFalse, reason: 'U+06DF black dot remains');
     expect(text.contains('\u06e0'), isTrue, reason: 'U+06E0 upright zero missing');
+  });
+
+  test('Verify every ayah has non-empty Tajweed markup', () async {
+    final rows = await db.rawQuery(
+      "SELECT COUNT(*) AS count FROM ayahs "
+      "WHERE text_tajweed IS NULL OR text_tajweed = ''",
+    );
+    expect(rows.first['count'], equals(0));
+  });
+
+  test('Verify no stray markup survives in the Tajweed column', () async {
+    // The source has a malformed tag (32:3) and <span class=end> markers; the
+    // builder must strip both, leaving only well-formed <tajweed> tags.
+    final rows = await db.rawQuery('SELECT surah_id, verse_number, text_tajweed FROM ayahs');
+    final tagPattern = RegExp(r'</?tajweed[^>]*>');
+    for (final row in rows) {
+      final markup = row['text_tajweed'] as String;
+      expect(markup.contains('<span'), isFalse,
+          reason: '${row['surah_id']}:${row['verse_number']} has a <span> marker');
+      // Everything that is not a well-formed <tajweed> tag must be text.
+      final remainder = markup.replaceAll(tagPattern, '');
+      expect(remainder.contains('<'), isFalse,
+          reason: '${row['surah_id']}:${row['verse_number']} has an opening tag left over');
+      expect(remainder.contains('>'), isFalse,
+          reason: '${row['surah_id']}:${row['verse_number']} has a stray ">"');
+    }
+  });
+
+  test('Verify Tajweed markup parses into the expected palette', () async {
+    // Al-Ikhlas 112:1: "... أَحَدٌ" with a qalqalah on the dal.
+    final rows = await db.rawQuery(
+      "SELECT text_tajweed FROM ayahs WHERE surah_id = 112 AND verse_number = 1",
+    );
+    final markup = rows.first['text_tajweed'] as String;
+    expect(markup, contains('<tajweed class='));
+
+    final span = TajweedTextSpan.build(
+      markup,
+      fontSize: 24,
+      defaultColor: const Color(0xFF000000),
+    );
+    final colors = <Color?>{};
+    void walk(InlineSpan s) {
+      if (s is TextSpan) {
+        if (s.text != null) colors.add(s.style?.color);
+        for (final c in s.children ?? const <InlineSpan>[]) {
+          walk(c);
+        }
+      }
+    }
+
+    walk(span);
+    // The qalqalah colour must appear, and some text must remain untagged
+    // (rendered with the default/ambient colour).
+    expect(colors, contains(TajweedColors.qalqalah));
+    expect(colors, contains(null));
+  });
+
+  test('Verify the Tajweed plain text matches the Uthmani plain text', () async {
+    // Both columns come from the same verse, so stripping the markup must yield
+    // text with the same normalised form (diacritic-independent).
+    for (final verse in ['1:1', '2:1', '9:1', '112:1']) {
+      final rows = await db.rawQuery(
+        'SELECT text_uthmani, text_tajweed FROM ayahs '
+        'WHERE surah_id = ? AND verse_number = ?',
+        verse.split(':').map(int.parse).toList(),
+      );
+      final uthmani = rows.first['text_uthmani'] as String;
+      final tajweed = rows.first['text_tajweed'] as String;
+      final plain = tajweed.replaceAll(RegExp(r'<[^>]*>'), '');
+      expect(
+        ArabicNormalizer.normalize(plain),
+        equals(ArabicNormalizer.normalize(uthmani)),
+        reason: 'verse $verse plain Tajweed text should match Uthmani text',
+      );
+    }
   });
 
   test('Verify search surahs by name and ID', () async {

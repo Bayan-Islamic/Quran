@@ -83,6 +83,81 @@ class SanitizeQuranicGlyphsTest(unittest.TestCase):
         )
 
 
+class CleanTajweedMarkupTest(unittest.TestCase):
+    def test_strips_the_verse_end_marker(self):
+        self.assertEqual(
+            builder.clean_tajweed_markup(
+                "قُلْ هُوَ <tajweed class=ham_wasl>ٱ</tajweed>للَّهُ "
+                "<span class=end>١</span>"
+            ),
+            "قُلْ هُوَ <tajweed class=ham_wasl>ٱ</tajweed>للَّهُ",
+        )
+
+    def test_strips_a_stray_greater_than_from_a_malformed_tag(self):
+        # 32:3 in the source has ">ٮٰ" where an opening tag should be.
+        text = "ٱفْتَرَ>ٮٰ</tajweed>هُ"
+        self.assertEqual(builder.clean_tajweed_markup(text), "ٱفْتَرَٮٰ</tajweed>هُ")
+
+    def test_keeps_well_formed_tags_intact(self):
+        text = "<tajweed class=qalaqah>د</tajweed>"
+        self.assertEqual(builder.clean_tajweed_markup(text), text)
+
+    def test_applies_the_glyph_sanitiser(self):
+        self.assertEqual(
+            builder.clean_tajweed_markup("أُو\u06dfلَ"),
+            "أُو\u06e0لَ",
+        )
+
+    def test_handles_empty_input(self):
+        self.assertEqual(builder.clean_tajweed_markup(""), "")
+
+
+class ValidateTajweedTest(unittest.TestCase):
+    """`validate` always checks the full corpus, so these fixtures build one."""
+
+    @staticmethod
+    def _corpus():
+        # 113 surahs with one verse + surah 114 carrying the rest = 6236.
+        counts = {i: 1 for i in range(1, 114)}
+        counts[114] = builder.EXPECTED_AYAHS - 113
+        surahs = [(i, "n", "n", "مكية", counts[i], 1) for i in range(1, 115)]
+        verses = []
+        tajweed = {}
+        for surah_id, count in counts.items():
+            for verse_number in range(1, count + 1):
+                verses.append((surah_id, verse_number, "الٓمٓ", 1, 1, 1))
+                tajweed[f"{surah_id}:{verse_number}"] = "الٓمٓ"
+        return surahs, verses, tajweed
+
+    def test_accepts_a_well_formed_corpus(self):
+        surahs, verses, tajweed = self._corpus()
+        builder.validate(surahs, verses, tajweed)
+
+    def test_rejects_a_missing_tajweed_verse(self):
+        surahs, verses, tajweed = self._corpus()
+        del tajweed["2:1"]
+        with self.assertRaises(SystemExit):
+            builder.validate(surahs, verses, tajweed)
+
+    def test_rejects_a_leftover_span_marker(self):
+        surahs, verses, tajweed = self._corpus()
+        tajweed["2:1"] = "الٓمٓ <span class=end>١</span>"
+        with self.assertRaises(SystemExit):
+            builder.validate(surahs, verses, tajweed)
+
+    def test_rejects_an_empty_tajweed_verse(self):
+        surahs, verses, tajweed = self._corpus()
+        tajweed["2:1"] = ""
+        with self.assertRaises(SystemExit):
+            builder.validate(surahs, verses, tajweed)
+
+    def test_rejects_a_remaining_unsupported_glyph(self):
+        surahs, verses, tajweed = self._corpus()
+        tajweed["2:1"] = "ال\u06dfم"
+        with self.assertRaises(SystemExit):
+            builder.validate(surahs, verses, tajweed)
+
+
 class ValidateTest(unittest.TestCase):
     @staticmethod
     def _surahs():
@@ -94,19 +169,25 @@ class ValidateTest(unittest.TestCase):
         # so only the aggregate-count checks are exercised.
         return [(i, 1, "الٓمٓ", 1, 1, 1) for i in range(1, 115)]
 
+    @staticmethod
+    def _tajweed():
+        return {f"{i}:1": "الٓمٓ" for i in range(1, 115)}
+
     def test_rejects_the_wrong_surah_count(self):
         with self.assertRaises(SystemExit):
-            builder.validate([(1, "n", "n", "مكية", 1, 1)], self._verses())
+            builder.validate(
+                [(1, "n", "n", "مكية", 1, 1)], self._verses(), self._tajweed()
+            )
 
     def test_rejects_the_wrong_ayah_count(self):
         with self.assertRaises(SystemExit):
-            builder.validate(self._surahs(), [])
+            builder.validate(self._surahs(), [], self._tajweed())
 
     def test_rejects_a_basmala_prefix_on_verse_one(self):
         verses = self._verses()
         verses[1] = (2, 1, "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ الٓمٓ", 2, 1, 1)
         with self.assertRaises(SystemExit):
-            builder.validate(self._surahs(), verses)
+            builder.validate(self._surahs(), verses, self._tajweed())
 
 
 if __name__ == "__main__":

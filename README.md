@@ -20,6 +20,10 @@ network connection. It runs on Android, iOS, desktop and the web.
   duplicate Basmala stripped from verse 1.
 - **Full-text search** — queries the precomputed `text_search_normalised`
   column and highlights the match inside the still-diacritised display text.
+- **Colour-coded Tajweed mode** (وضع التجويد الملون) — a toggle in the reader
+  recolours the verse with the authentic Tajweed Mushaf palette (madd, ghunnah,
+  qalqalah, silent letters). The preference is persisted, and an in-app colour
+  guide explains each rule.
 - **Bookmarks** — long-press a verse to remember the last read position.
 - **Light/dark themes** with an emerald and gold palette.
 
@@ -90,16 +94,33 @@ flutter build web --release
 python3 tools/build_quran_db.py
 ```
 
-The script downloads the Uthmani text and chapter metadata from the
-[quran.com v4 API](https://api.quran.com), normalises the text for search,
-strips the duplicate Basmala from verse 1 (except Surah 1), and writes:
+The script downloads the Uthmani text, the Uthmani Tajweed text and chapter
+metadata from the [quran.com v4 API](https://api.quran.com), normalises the
+text for search, strips the duplicate Basmala from verse 1 (except Surah 1),
+and writes:
 
 - `surahs(id, name_ar, name_en, type, total_verses, start_page)`
-- `ayahs(id, surah_id, verse_number, text_uthmani, text_search_normalised,
-  page_number, juz, hizb)`
+- `ayahs(id, surah_id, verse_number, text_uthmani, text_tajweed,
+  text_search_normalised, page_number, juz, hizb)`
+
+`text_tajweed` holds the same verse annotated with `<tajweed class="…">` markup
+from the `uthmani_tajweed` edition. The builder strips the `<span class="end">`
+verse markers, removes stray characters left by malformed source tags (for
+example the orphan `>` in 32:3) and applies the same glyph sanitiser as the
+plain column, so both columns render identically.
 
 Responses are cached in `tools/cache/` (gitignored). Pass `--offline` to build
 from the cache without network access.
+
+### Tajweed mode
+
+The reader parses the `text_tajweed` markup at render time with a tolerant
+stack-based parser (`lib/features/quran_reader/presentation/widgets/
+tajweed_text_span.dart`). It accepts both the quran.com class names
+(`ham_wasl`, `madda_normal`, …) and the published Tajweed specification aliases
+(`hamzat_wasl`, `madd_2`, …), maps them onto six palette colours, and never
+throws on malformed input — unclosed tags are closed at end-of-text and orphan
+closing tags are ignored. Unknown classes inherit the enclosing colour.
 
 ### Arabic normalisation
 

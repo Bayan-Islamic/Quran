@@ -69,6 +69,8 @@ class MockQuranReaderRepository implements QuranReaderRepository {
           surahId: 2,
           verseNumber: 2,
           textUthmani: 'ذَٰلِكَ ٱلْكِتَٰبُ لَا رَيْبَ ۛ فِيهِ',
+          textTajweed:
+              'ذَ<tajweed class=madda_normal>َٰلِكَ</tajweed> ٱلْكِتَ<tajweed class=madda_normal>ٰبُ</tajweed> لَا رَيْ<tajweed class=ghunnah>بَ ۛ ف</tajweed>ِيهِ',
           textSearchNormalised: 'ذلك الكتاب لا ريب فيه',
           pageNumber: 2,
           juz: 1,
@@ -166,6 +168,68 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(BasmalaHeader), findsOneWidget);
+    });
+  });
+
+  group('QuranReaderPage Tajweed Mode Tests', () {
+    Widget buildTestWidget(Surah surah) {
+      return MaterialApp(
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider<QuranReaderCubit>(
+              create: (_) => QuranReaderCubit(quranReaderRepository: repository),
+            ),
+            BlocProvider<BookmarkCubit>(
+              create: (_) => BookmarkCubit(bookmarkRepository: MockBookmarkRepository()),
+            ),
+          ],
+          child: QuranReaderPage(surah: surah),
+        ),
+      );
+    }
+
+    testWidgets('palette toggle flips tajweedMode on and back off', (tester) async {
+      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      await tester.pumpWidget(buildTestWidget(baqarah));
+      await tester.pumpAndSettle();
+
+      final cubit = tester.element(find.byType(QuranReaderPage)).read<QuranReaderCubit>();
+      expect(cubit.state.tajweedMode, isFalse);
+      expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.palette_outlined));
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.tajweedMode, isTrue);
+      expect(find.byIcon(Icons.palette), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.palette));
+      await tester.pumpAndSettle();
+      expect(cubit.state.tajweedMode, isFalse);
+    });
+
+    testWidgets('tajweed mode renders coloured spans for the verse', (tester) async {
+      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      await tester.pumpWidget(buildTestWidget(baqarah));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.palette_outlined));
+      await tester.pumpAndSettle();
+
+      // The coloured matn must be present as a rich text span tree.
+      expect(find.byType(SelectableText), findsWidgets);
+    });
+
+    testWidgets('the color guide opens from the info action', (tester) async {
+      const baqarah = Surah(id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', type: 'مدنية', totalVerses: 286, pageNumber: 2);
+      await tester.pumpWidget(buildTestWidget(baqarah));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.info_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.text('دليل ألوان التجويد'), findsOneWidget);
+      expect(find.text('Tajweed Color Guide'), findsOneWidget);
     });
   });
 }

@@ -51,12 +51,15 @@ class QuranReaderLocalDataSourceImpl implements QuranReaderLocalDataSource {
         list.first.verseNumber == 1) {
       final first = list.first;
       final strippedText = stripBasmalaPrefix(first.textUthmani);
-      if (strippedText != first.textUthmani) {
+      final strippedTajweed = stripBasmalaPrefix(first.textTajweed);
+      if (strippedText != first.textUthmani ||
+          strippedTajweed != first.textTajweed) {
         list[0] = AyahModel(
           id: first.id,
           surahId: first.surahId,
           verseNumber: first.verseNumber,
           textUthmani: strippedText,
+          textTajweed: strippedTajweed,
           textSearchNormalised: ArabicNormalizer.normalize(strippedText),
           pageNumber: first.pageNumber,
           juz: first.juz,

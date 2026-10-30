@@ -6,6 +6,11 @@ class Ayah extends Equatable {
   final int verseNumber;
   final String textUthmani;
 
+  /// Uthmani text annotated with `<tajweed class="...">` markup, sourced from
+  /// the database's `text_tajweed` column and used by the colour-coded Tajweed
+  /// mode. Empty when the edition is unavailable.
+  final String textTajweed;
+
   /// Arabic-normalised copy of [textUthmani], sourced from the database's
   /// `text_search_normalised` column so search never normalises at runtime.
   final String textSearchNormalised;
@@ -19,6 +24,7 @@ class Ayah extends Equatable {
     required this.surahId,
     required this.verseNumber,
     required this.textUthmani,
+    this.textTajweed = '',
     required this.textSearchNormalised,
     required this.pageNumber,
     required this.juz,
@@ -31,6 +37,7 @@ class Ayah extends Equatable {
         surahId,
         verseNumber,
         textUthmani,
+        textTajweed,
         textSearchNormalised,
         pageNumber,
         juz,
