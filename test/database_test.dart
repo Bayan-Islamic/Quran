@@ -10,6 +10,7 @@ import 'package:bayan_quran/features/surah_index/data/datasources/surah_local_da
 import 'package:bayan_quran/features/surah_index/data/repositories/surah_repository_impl.dart';
 import 'package:bayan_quran/features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'package:bayan_quran/features/quran_reader/data/repositories/quran_reader_repository_impl.dart';
+import 'package:bayan_quran/features/mushaf/data/datasources/mushaf_navigation_data_source.dart';
 
 /// Mirrors the parser's definition of an Arabic combining mark (Unicode Mn).
 bool _startsWithCombiningMark(String text) {
@@ -34,7 +35,8 @@ void main() {
 
   setUpAll(() async {
     final absoluteDbPath = p.join(Directory.current.path, 'assets', 'quran.db');
-    expect(File(absoluteDbPath).existsSync(), true, reason: 'assets/quran.db must exist');
+    expect(File(absoluteDbPath).existsSync(), true,
+        reason: 'assets/quran.db must exist');
 
     db = await databaseFactoryFfi.openDatabase(
       absoluteDbPath,
@@ -47,8 +49,10 @@ void main() {
     final surahDataSource = SurahLocalDataSourceImpl(databaseHelper: dbHelper);
     surahRepository = SurahRepositoryImpl(localDataSource: surahDataSource);
 
-    final readerDataSource = QuranReaderLocalDataSourceImpl(databaseHelper: dbHelper);
-    quranReaderRepository = QuranReaderRepositoryImpl(localDataSource: readerDataSource);
+    final readerDataSource =
+        QuranReaderLocalDataSourceImpl(databaseHelper: dbHelper);
+    quranReaderRepository =
+        QuranReaderRepositoryImpl(localDataSource: readerDataSource);
   });
 
   tearDownAll(() async {
@@ -81,7 +85,8 @@ void main() {
     expect(fetchedAyahsCount, equals(6236));
   });
 
-  test('Verify Al-Fatiha, At-Tawbah, and Al-Baqarah Basmala expectations', () async {
+  test('Verify Al-Fatiha, At-Tawbah, and Al-Baqarah Basmala expectations',
+      () async {
     final fatihaAyahs = await quranReaderRepository.getAyahsBySurahId(1);
     expect(fatihaAyahs.first.textUthmani, contains('بِسْمِ'));
 
@@ -96,7 +101,8 @@ void main() {
   test('No surah other than 1 and 9 has a Basmala prefix on verse 1', () async {
     for (final surah in await surahRepository.getAllSurahs()) {
       if (surah.id == 1 || surah.id == 9) continue;
-      final first = (await quranReaderRepository.getAyahsBySurahId(surah.id)).first;
+      final first =
+          (await quranReaderRepository.getAyahsBySurahId(surah.id)).first;
       expect(
         first.textUthmani.startsWith('بِسْمِ ٱللَّهِ'),
         isFalse,
@@ -106,15 +112,18 @@ void main() {
   });
 
   test('Verify hizb, juz and page ranges', () async {
-    final hizb = await db.rawQuery('SELECT MIN(hizb) AS lo, MAX(hizb) AS hi FROM ayahs');
+    final hizb =
+        await db.rawQuery('SELECT MIN(hizb) AS lo, MAX(hizb) AS hi FROM ayahs');
     expect(hizb.first['lo'], equals(1));
     expect(hizb.first['hi'], equals(60));
 
-    final juz = await db.rawQuery('SELECT MIN(juz) AS lo, MAX(juz) AS hi FROM ayahs');
+    final juz =
+        await db.rawQuery('SELECT MIN(juz) AS lo, MAX(juz) AS hi FROM ayahs');
     expect(juz.first['lo'], equals(1));
     expect(juz.first['hi'], equals(30));
 
-    final pages = await db.rawQuery('SELECT COUNT(DISTINCT page_number) AS c FROM ayahs');
+    final pages =
+        await db.rawQuery('SELECT COUNT(DISTINCT page_number) AS c FROM ayahs');
     expect(pages.first['c'], equals(604));
   });
 
@@ -125,7 +134,8 @@ void main() {
       GROUP BY s.id
     ''');
     for (final row in rows) {
-      expect(row['start_page'], equals(row['first_page']), reason: 'surah ${row['id']}');
+      expect(row['start_page'], equals(row['first_page']),
+          reason: 'surah ${row['id']}');
     }
   });
 
@@ -143,20 +153,22 @@ void main() {
     expect(pauseGlyphCount, greaterThan(0));
   });
 
-
   test('Verify surah revelation types match the source dataset', () async {
     final surahs = await surahRepository.getAllSurahs();
     final byId = {for (final s in surahs) s.id: s};
 
     // Meccan surahs (مكية): Al-Fatihah, Al-An'am, Al-A'raf, Al-Ikhlas, An-Nas.
     for (final id in [1, 6, 7, 112, 114]) {
-      expect(byId[id]!.type, equals('مكية'), reason: 'surah $id should be Meccan');
+      expect(byId[id]!.type, equals('مكية'),
+          reason: 'surah $id should be Meccan');
       expect(byId[id]!.isMeccan, isTrue, reason: 'surah $id should be Meccan');
     }
     // Medinan surahs (مدنية): Al-Baqarah, At-Tawbah.
     for (final id in [2, 9]) {
-      expect(byId[id]!.type, equals('مدنية'), reason: 'surah $id should be Medinan');
-      expect(byId[id]!.isMeccan, isFalse, reason: 'surah $id should be Medinan');
+      expect(byId[id]!.type, equals('مدنية'),
+          reason: 'surah $id should be Medinan');
+      expect(byId[id]!.isMeccan, isFalse,
+          reason: 'surah $id should be Medinan');
     }
 
     final meccan = surahs.where((s) => s.isMeccan).length;
@@ -180,13 +192,16 @@ void main() {
     }
   });
 
-  test('Verify Al-Baqarah 2:5 uses the rendered zero, not the black dot', () async {
+  test('Verify Al-Baqarah 2:5 uses the rendered zero, not the black dot',
+      () async {
     final rows = await db.rawQuery(
       'SELECT text_uthmani FROM ayahs WHERE surah_id = 2 AND verse_number = 5',
     );
     final text = rows.first['text_uthmani'] as String;
-    expect(text.contains('\u06df'), isFalse, reason: 'U+06DF black dot remains');
-    expect(text.contains('\u06e0'), isTrue, reason: 'U+06E0 upright zero missing');
+    expect(text.contains('\u06df'), isFalse,
+        reason: 'U+06DF black dot remains');
+    expect(text.contains('\u06e0'), isTrue,
+        reason: 'U+06E0 upright zero missing');
   });
 
   test('Verify every ayah has non-empty Tajweed markup', () async {
@@ -200,16 +215,19 @@ void main() {
   test('Verify no stray markup survives in the Tajweed column', () async {
     // The source has a malformed tag (32:3) and <span class=end> markers; the
     // builder must strip both, leaving only well-formed <tajweed> tags.
-    final rows = await db.rawQuery('SELECT surah_id, verse_number, text_tajweed FROM ayahs');
+    final rows = await db
+        .rawQuery('SELECT surah_id, verse_number, text_tajweed FROM ayahs');
     final tagPattern = RegExp(r'</?tajweed[^>]*>');
     for (final row in rows) {
       final markup = row['text_tajweed'] as String;
       expect(markup.contains('<span'), isFalse,
-          reason: '${row['surah_id']}:${row['verse_number']} has a <span> marker');
+          reason:
+              '${row['surah_id']}:${row['verse_number']} has a <span> marker');
       // Everything that is not a well-formed <tajweed> tag must be text.
       final remainder = markup.replaceAll(tagPattern, '');
       expect(remainder.contains('<'), isFalse,
-          reason: '${row['surah_id']}:${row['verse_number']} has an opening tag left over');
+          reason:
+              '${row['surah_id']}:${row['verse_number']} has an opening tag left over');
       expect(remainder.contains('>'), isFalse,
           reason: '${row['surah_id']}:${row['verse_number']} has a stray ">"');
     }
@@ -245,7 +263,8 @@ void main() {
     expect(colors, contains(null));
   });
 
-  test('Verify the Tajweed plain text matches the Uthmani plain text', () async {
+  test('Verify the Tajweed plain text matches the Uthmani plain text',
+      () async {
     // Both columns come from the same verse, so stripping the markup must yield
     // text with the same normalised form (diacritic-independent).
     for (final verse in ['1:1', '2:1', '9:1', '112:1']) {
@@ -265,7 +284,8 @@ void main() {
     }
   });
 
-  test('Verify no Tajweed span starts with a combining mark (dotted-circle bug)',
+  test(
+      'Verify no Tajweed span starts with a combining mark (dotted-circle bug)',
       () async {
     // A span that begins with a combining mark is shaped in isolation and the
     // engine draws the U+25CC dotted-circle fallback. The parser must bind each
@@ -311,5 +331,36 @@ void main() {
     final searchByNum = await surahRepository.searchSurahs('114');
     expect(searchByNum.length, equals(1));
     expect(searchByNum.first.nameAr, equals('الناس'));
+  });
+
+  test('Verify every ayah has a Tafsir and an English translation', () async {
+    final rows = await db.rawQuery('SELECT COUNT(*) AS c FROM ayah_content');
+    expect(rows.first['c'], equals(6236));
+
+    final empty = await db.rawQuery(
+      "SELECT COUNT(*) AS c FROM ayah_content "
+      "WHERE tafsir_muyassar IS NULL OR tafsir_muyassar = '' "
+      "OR translation_en IS NULL OR translation_en = ''",
+    );
+    expect(empty.first['c'], equals(0));
+  });
+
+  test('Verify the juz navigation data source lists 30 juz from page 1',
+      () async {
+    final dataSource = MushafNavigationDataSourceImpl(
+      databaseHelper: DatabaseHelper.instance,
+    );
+    final juzList = await dataSource.getJuzList();
+
+    expect(juzList.length, equals(30));
+    expect(juzList.first.number, equals(1));
+    expect(juzList.first.startPage, equals(1));
+    expect(juzList.last.number, equals(30));
+    expect(
+      juzList.map((j) => j.startPage).toList(),
+      orderedEquals(
+        juzList.map((j) => j.startPage).toList()..sort(),
+      ),
+    );
   });
 }

@@ -2,16 +2,31 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/arabic_number_converter.dart';
 import '../../domain/entities/bookmark.dart';
+import '../../domain/entities/mushaf_bookmark.dart';
 
+/// Emerald gradient card that offers a one-tap return to where reading stopped.
+///
+/// It shows either the last-read ayah ([bookmark]) or, when only a Mushaf page
+/// bookmark exists, that printed page ([mushafBookmark]).
 class ContinueReadingBanner extends StatelessWidget {
-  final Bookmark bookmark;
+  final Bookmark? bookmark;
+  final MushafBookmark? mushafBookmark;
   final VoidCallback onTap;
 
   const ContinueReadingBanner({
     super.key,
-    required this.bookmark,
+    this.bookmark,
+    this.mushafBookmark,
     required this.onTap,
   });
+
+  /// The label shown under "متابعة القراءة".
+  String get _label {
+    if (bookmark != null) {
+      return 'سورة ${bookmark!.surahNameAr} - الآية ${ArabicNumberConverter.convert(bookmark!.verseNumber)}';
+    }
+    return 'صفحة ${ArabicNumberConverter.convert(mushafBookmark!.pageNumber)} من المصحف';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +87,10 @@ class ContinueReadingBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'سورة ${bookmark.surahNameAr} - الآية ${ArabicNumberConverter.convert(bookmark.verseNumber)}',
+                  _label,
                   style: const TextStyle(
                     fontFamily: 'UthmanicHafs',
-            fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
+                    fontFamilyFallback: ['Amiri', 'Arial', 'sans-serif'],
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,

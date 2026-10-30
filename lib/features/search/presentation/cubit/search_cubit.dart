@@ -5,8 +5,7 @@ import 'search_state.dart';
 class SearchCubit extends Cubit<SearchState> {
   final SearchRepository searchRepository;
 
-  SearchCubit({required this.searchRepository})
-      : super(const SearchInitial());
+  SearchCubit({required this.searchRepository}) : super(const SearchInitial());
 
   Future<void> search(String query) async {
     final cleanQuery = query.trim();

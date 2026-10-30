@@ -8,8 +8,10 @@ import 'core/theme/app_theme.dart';
 import 'features/bookmarks/data/datasources/bookmark_local_data_source.dart';
 import 'features/bookmarks/data/repositories/bookmark_repository_impl.dart';
 import 'features/bookmarks/presentation/cubit/bookmark_cubit.dart';
+import 'features/mushaf/data/datasources/mushaf_navigation_data_source.dart';
 import 'features/mushaf/data/repositories/mushaf_preferences_impl.dart';
 import 'features/mushaf/presentation/cubit/mushaf_cubit.dart';
+import 'features/mushaf/presentation/cubit/mushaf_navigation_cubit.dart';
 import 'features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'features/quran_reader/data/repositories/quran_reader_preferences_impl.dart';
 import 'features/quran_reader/data/repositories/quran_reader_repository_impl.dart';
@@ -42,7 +44,8 @@ class _BayanQuranAppState extends State<BayanQuranApp> {
 
   void _toggleTheme() {
     setState(() {
-      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+      _themeMode =
+          _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     });
   }
 
@@ -50,19 +53,26 @@ class _BayanQuranAppState extends State<BayanQuranApp> {
   Widget build(BuildContext context) {
     final dbHelper = DatabaseHelper.instance;
 
-    final surahLocalDataSource = SurahLocalDataSourceImpl(databaseHelper: dbHelper);
-    final surahRepository = SurahRepositoryImpl(localDataSource: surahLocalDataSource);
+    final surahLocalDataSource =
+        SurahLocalDataSourceImpl(databaseHelper: dbHelper);
+    final surahRepository =
+        SurahRepositoryImpl(localDataSource: surahLocalDataSource);
 
-    final quranReaderLocalDataSource = QuranReaderLocalDataSourceImpl(databaseHelper: dbHelper);
-    final quranReaderRepository = QuranReaderRepositoryImpl(localDataSource: quranReaderLocalDataSource);
+    final quranReaderLocalDataSource =
+        QuranReaderLocalDataSourceImpl(databaseHelper: dbHelper);
+    final quranReaderRepository =
+        QuranReaderRepositoryImpl(localDataSource: quranReaderLocalDataSource);
 
-    final searchLocalDataSource = SearchLocalDataSourceImpl(databaseHelper: dbHelper);
-    final searchRepository = SearchRepositoryImpl(localDataSource: searchLocalDataSource);
+    final searchLocalDataSource =
+        SearchLocalDataSourceImpl(databaseHelper: dbHelper);
+    final searchRepository =
+        SearchRepositoryImpl(localDataSource: searchLocalDataSource);
 
     return MultiBlocProvider(
       providers: [
         BlocProvider<SurahIndexCubit>(
-          create: (context) => SurahIndexCubit(surahRepository: surahRepository),
+          create: (context) =>
+              SurahIndexCubit(surahRepository: surahRepository),
         ),
         BlocProvider<QuranReaderCubit>(
           create: (context) => QuranReaderCubit(
@@ -85,6 +95,14 @@ class _BayanQuranAppState extends State<BayanQuranApp> {
                     sharedPreferences: widget.sharedPreferences!,
                   ),
           )..loadPreferences(),
+        ),
+        BlocProvider<MushafNavigationCubit>(
+          create: (context) => MushafNavigationCubit(
+            surahRepository: surahRepository,
+            navigationDataSource: MushafNavigationDataSourceImpl(
+              databaseHelper: dbHelper,
+            ),
+          ),
         ),
         if (widget.sharedPreferences != null)
           BlocProvider<BookmarkCubit>(

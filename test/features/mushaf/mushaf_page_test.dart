@@ -2,15 +2,64 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:bayan_quran/features/bookmarks/domain/entities/bookmark.dart';
+import 'package:bayan_quran/features/bookmarks/domain/entities/mushaf_bookmark.dart';
+import 'package:bayan_quran/features/bookmarks/domain/repositories/bookmark_repository.dart';
+import 'package:bayan_quran/features/bookmarks/presentation/cubit/bookmark_cubit.dart';
+import 'package:bayan_quran/features/bookmarks/presentation/cubit/bookmark_state.dart';
 import 'package:bayan_quran/features/mushaf/domain/entities/mushaf_edition.dart';
 import 'package:bayan_quran/features/mushaf/presentation/cubit/mushaf_cubit.dart';
 import 'package:bayan_quran/features/mushaf/presentation/pages/mushaf_page.dart';
 
+/// In-memory [BookmarkRepository] so the Mushaf page can be built without a
+/// real `shared_preferences` backend.
+class _FakeBookmarkRepository implements BookmarkRepository {
+  Bookmark? _bookmark;
+  MushafBookmark? _mushafBookmark;
+
+  @override
+  Future<Bookmark?> getLastRead() async => _bookmark;
+
+  @override
+  Future<MushafBookmark?> getMushafPage() async => _mushafBookmark;
+
+  @override
+  Future<void> saveLastRead({
+    required int surahId,
+    required String surahNameAr,
+    required int verseNumber,
+  }) async {
+    _bookmark = Bookmark(
+      surahId: surahId,
+      surahNameAr: surahNameAr,
+      verseNumber: verseNumber,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    );
+  }
+
+  @override
+  Future<void> saveMushafPage(int? pageNumber) async {
+    _mushafBookmark = pageNumber == null
+        ? null
+        : MushafBookmark(
+            pageNumber: pageNumber,
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          );
+  }
+}
+
 void main() {
   Widget buildTestWidget({int initialPage = 1}) {
     return MaterialApp(
-      home: BlocProvider<MushafCubit>(
-        create: (_) => MushafCubit(),
+      home: MultiBlocProvider(
+        providers: [
+          BlocProvider<MushafCubit>(create: (_) => MushafCubit()),
+          BlocProvider<BookmarkCubit>(
+            create: (_) =>
+                BookmarkCubit(bookmarkRepository: _FakeBookmarkRepository())
+                  ..loadLastRead(),
+          ),
+        ],
         child: MushafPage(initialPage: initialPage),
       ),
     );
@@ -99,5 +148,40 @@ void main() {
       (image.image as AssetImage).assetName,
       MushafEdition.tajweed.pageAssetPath(3),
     );
+  });
+
+  testWidgets('the bookmark action toggles a page bookmark', (tester) async {
+    await tester.pumpWidget(buildTestWidget(initialPage: 7));
+    await tester.pumpAndSettle();
+
+    final cubit = tester.element(find.byType(MushafPage)).read<BookmarkCubit>();
+
+    expect(find.byIcon(Icons.bookmark_border), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.bookmark_border));
+    await tester.pumpAndSettle();
+
+    expect((cubit.state as BookmarkLoaded).mushafBookmark?.pageNumber, 7);
+    expect(find.byIcon(Icons.bookmark), findsOneWidget);
+
+    // Tapping again clears it.
+    await tester.tap(find.byIcon(Icons.bookmark));
+    await tester.pumpAndSettle();
+    expect((cubit.state as BookmarkLoaded).mushafBookmark, isNull);
+  });
+
+  testWidgets('tapping the page toggles the chrome', (tester) async {
+    await tester.pumpWidget(buildTestWidget(initialPage: 1));
+    await tester.pump();
+
+    expect(find.byType(Slider), findsOneWidget);
+
+    await tester.tap(find.byType(PageView));
+    await tester.pumpAndSettle();
+    expect(find.byType(Slider), findsNothing);
+
+    await tester.tap(find.byType(PageView));
+    await tester.pumpAndSettle();
+    expect(find.byType(Slider), findsOneWidget);
   });
 }

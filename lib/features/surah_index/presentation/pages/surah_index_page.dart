@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../bookmarks/presentation/cubit/bookmark_cubit.dart';
 import '../../../bookmarks/presentation/cubit/bookmark_state.dart';
 import '../../../bookmarks/presentation/widgets/continue_reading_banner.dart';
+import '../../../duaa_khatm/presentation/pages/duaa_khatm_page.dart';
 import '../../../mushaf/presentation/cubit/mushaf_cubit.dart';
 import '../../../mushaf/presentation/pages/mushaf_page.dart';
 import '../../../quran_reader/presentation/pages/quran_reader_page.dart';
@@ -102,6 +103,11 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
             onPressed: () => _openMushaf(1),
           ),
           IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'دعاء ختم القرآن',
+            onPressed: () => DuaaKhatmPage.show(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.manage_search),
             tooltip: 'البحث في الآيات',
             onPressed: () {
@@ -131,7 +137,8 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
               },
               decoration: InputDecoration(
                 hintText: 'ابحث عن سورة (Search Surah by name/number)...',
-                prefixIcon: const Icon(Icons.search, color: AppColors.primaryEmerald),
+                prefixIcon:
+                    const Icon(Icons.search, color: AppColors.primaryEmerald),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
@@ -142,7 +149,8 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
                       )
                     : null,
                 filled: true,
-                fillColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                fillColor:
+                    isDark ? AppColors.darkSurface : AppColors.lightSurface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.primaryEmerald),
@@ -150,12 +158,14 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primaryEmerald, width: 2),
+                  borderSide: const BorderSide(
+                      color: AppColors.primaryEmerald, width: 2),
                 ),
               ),
             ),
@@ -165,14 +175,16 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
               builder: (context, indexState) {
                 if (indexState is SurahIndexLoading) {
                   return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primaryEmerald),
+                    child: CircularProgressIndicator(
+                        color: AppColors.primaryEmerald),
                   );
                 } else if (indexState is SurahIndexError) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const Icon(Icons.error_outline,
+                            size: 48, color: Colors.red),
                         const SizedBox(height: 12),
                         Text(indexState.message),
                         const SizedBox(height: 12),
@@ -190,12 +202,20 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
 
                   return BlocBuilder<BookmarkCubit, BookmarkState>(
                     builder: (context, bookmarkState) {
-                      final bookmark = (bookmarkState is BookmarkLoaded) ? bookmarkState.bookmark : null;
-                      final showBanner = bookmark != null && _searchController.text.isEmpty;
+                      final bookmark = (bookmarkState is BookmarkLoaded)
+                          ? bookmarkState.bookmark
+                          : null;
+                      final mushafBookmark = (bookmarkState is BookmarkLoaded)
+                          ? bookmarkState.mushafBookmark
+                          : null;
+                      final showBanner =
+                          (bookmark != null || mushafBookmark != null) &&
+                              _searchController.text.isEmpty;
 
                       if (surahs.isEmpty && !showBanner) {
                         return const Center(
-                          child: Text('لا توجد نتائج متطابقة (No Surahs found)'),
+                          child:
+                              Text('لا توجد نتائج متطابقة (No Surahs found)'),
                         );
                       }
 
@@ -205,16 +225,23 @@ class _SurahIndexPageState extends State<SurahIndexPage> {
                           if (showBanner && index == 0) {
                             return ContinueReadingBanner(
                               bookmark: bookmark,
+                              mushafBookmark: mushafBookmark,
                               onTap: () {
-                                try {
-                                  final targetSurah = surahs.firstWhere(
-                                    (s) => s.id == bookmark.surahId,
-                                  );
-                                  _navigateToSurah(
-                                    targetSurah,
-                                    initialVerseNumber: bookmark.verseNumber,
-                                  );
-                                } catch (_) {}
+                                if (bookmark != null) {
+                                  try {
+                                    final targetSurah = surahs.firstWhere(
+                                      (s) => s.id == bookmark.surahId,
+                                    );
+                                    _navigateToSurah(
+                                      targetSurah,
+                                      initialVerseNumber: bookmark.verseNumber,
+                                    );
+                                    return;
+                                  } catch (_) {}
+                                }
+                                if (mushafBookmark != null) {
+                                  _openMushaf(mushafBookmark.pageNumber);
+                                }
                               },
                             );
                           }

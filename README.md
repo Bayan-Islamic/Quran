@@ -24,10 +24,22 @@ network connection. It runs on Android, iOS, desktop and the web.
   recolours the verse with the authentic Tajweed Mushaf palette (madd, ghunnah,
   qalqalah, silent letters). The preference is persisted, and an in-app colour
   guide explains each rule.
-- **Bookmarks** — long-press a verse to remember the last read position.
+- **Bookmarks** — long-press a verse to remember the last read position, and
+  bookmark a printed Mushaf page; the surah index shows a "Continue reading"
+  banner for whichever bookmark exists.
+- **Tafsir & translation sheet** — long-press an ayah to open an offline study
+  sheet with the Arabic Tafsir Al-Muyassar and the Saheeh International English
+  translation, read from the bundled database.
 - **Page-by-page Mushaf** (المصحف) — swipe through the 604 printed Madani
   pages. Two aligned editions ship side by side: the plain Uthmani Mushaf and
   the colour-coded Tajweed Mushaf, switchable from the reader and persisted.
+- **Mushaf controls & navigation** — tap the page to toggle the chrome (edition
+  switcher, Arabic page counter, page slider); a jump sheet navigates by surah
+  or by juz'. Bookmark the current page with one tap.
+- **Dual-mode search bridge** — search results open either the ayah reader or
+  the matching printed Mushaf page.
+- **Du'aa Khatm al-Qur'an** — swiping past the last Mushaf page opens an
+  offline supplication for completing the Qur'an.
 - **Light/dark themes** with an emerald and gold palette.
 
 ## Architecture
@@ -46,8 +58,10 @@ lib/
     surah_index/        surah list
     quran_reader/       ayah reader
     search/             full-text search
-    bookmarks/          last-read position
-    mushaf/             page-by-page Mushaf editions
+    bookmarks/          last-read position + Mushaf page bookmark
+    tafsir/             offline Tafsir Al-Muyassar + Saheeh Intl sheet
+    mushaf/             page-by-page Mushaf editions, controls & navigation
+    duaa_khatm/         Du'aa Khatm al-Qur'an
 ```
 
 State management uses `flutter_bloc` cubits. The database is opened read-only
@@ -210,8 +224,13 @@ viewport:
 | --- | --- | --- |
 | ![Standard Mushaf](screenshots/mushaf_standard.png) | ![Tajweed Mushaf](screenshots/mushaf_tajweed.png) | ![Mushaf controls](screenshots/mushaf_controls.png) |
 
-Tapping the page toggles the chrome: the app bar carries the edition switcher
-and the Arabic page counter, and a page slider sits along the bottom edge.
+Tapping the page toggles the chrome: the app bar carries the edition switcher,
+the page bookmark and the Arabic page counter, and a page slider sits along the
+bottom edge.
+
+| Mushaf navigation (السور / الأجزاء) | Du'aa Khatm al-Qur'an |
+| --- | --- |
+| ![Mushaf navigation](screenshots/mushaf_navigation.png) | ![Du'aa Khatm](screenshots/duaa_khatm.png) |
 
 ## License
 

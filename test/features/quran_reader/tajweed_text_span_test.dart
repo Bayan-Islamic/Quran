@@ -52,8 +52,8 @@ void main() {
       final qalqalah = leaves.firstWhere((l) => l.$1 == 'دٌ');
       expect(qalqalah.$2, equals(TajweedColors.qalqalah));
       // Untagged text keeps the default colour.
-      expect(leaves.firstWhere((l) => l.$1 == 'قُلْ ').$2,
-          equals(Colors.black));
+      expect(
+          leaves.firstWhere((l) => l.$1 == 'قُلْ ').$2, equals(Colors.black));
     });
 
     test('parses quoted class attributes as well as unquoted', () {
@@ -134,7 +134,8 @@ void main() {
     test('treats a malformed opening tag literally without throwing', () {
       final leaves = _leaves(_parse('ا<tajweed class=ghunnahب'));
       // No ">" ever arrives, so the remainder is literal text.
-      expect(leaves.map((l) => l.$1).join(), equals('ا<tajweed class=ghunnahب'));
+      expect(
+          leaves.map((l) => l.$1).join(), equals('ا<tajweed class=ghunnahب'));
     });
 
     test('nested tags use the innermost colour and restore the outer one', () {
@@ -204,14 +205,17 @@ void main() {
       expect(leaves.last.$2, equals(Colors.black));
     });
 
-    test('leaves a standalone mark at the very start of the verse untouched', () {
+    test('leaves a standalone mark at the very start of the verse untouched',
+        () {
       // Nothing precedes the mark, so there is no base to bind to; the parser
       // must not throw and must keep the text intact.
-      final leaves = _leaves(_parse('<tajweed class=madda_normal>َآ</tajweed>'));
+      final leaves =
+          _leaves(_parse('<tajweed class=madda_normal>َآ</tajweed>'));
       expect(leaves.map((l) => l.$1).join(), equals('َآ'));
     });
 
-    test('does not create an empty leading span when the first run is marks', () {
+    test('does not create an empty leading span when the first run is marks',
+        () {
       final leaves = _leaves(_parse('<tajweed class=ghunnah>ّ</tajweed>م'));
       expect(leaves.every((l) => l.$1.isNotEmpty), isTrue);
       expect(leaves.map((l) => l.$1).join(), equals('ّم'));

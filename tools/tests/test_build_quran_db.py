@@ -112,6 +112,29 @@ class CleanTajweedMarkupTest(unittest.TestCase):
         self.assertEqual(builder.clean_tajweed_markup(""), "")
 
 
+class StripHtmlTest(unittest.TestCase):
+    def test_strips_footnote_sup_markers(self):
+        self.assertEqual(
+            builder.strip_html(
+                "In the name of Allāh,<sup foot_note=195932>1</sup> the Entirely "
+                "Merciful."
+            ),
+            "In the name of Allāh, the Entirely Merciful.",
+        )
+
+    def test_strips_tafsir_highlight_spans(self):
+        self.assertEqual(
+            builder.strip_html('ذي الرحمة العامة <span class="green">(اللهِ)</span> علم'),
+            "ذي الرحمة العامة (اللهِ) علم",
+        )
+
+    def test_decodes_entities(self):
+        self.assertEqual(builder.strip_html("a &amp; b &lt;c&gt;"), "a & b <c>")
+
+    def test_handles_empty_input(self):
+        self.assertEqual(builder.strip_html(""), "")
+
+
 class ValidateTajweedTest(unittest.TestCase):
     """`validate` always checks the full corpus, so these fixtures build one."""
 
@@ -129,33 +152,65 @@ class ValidateTajweedTest(unittest.TestCase):
                 tajweed[f"{surah_id}:{verse_number}"] = "الٓمٓ"
         return surahs, verses, tajweed
 
+    @staticmethod
+    def _content(verses):
+        translation = {f"{s}:{v}": "text" for s, v, *_ in verses}
+        tafsir = {f"{s}:{v}": "نص" for s, v, *_ in verses}
+        return translation, tafsir
+
     def test_accepts_a_well_formed_corpus(self):
         surahs, verses, tajweed = self._corpus()
-        builder.validate(surahs, verses, tajweed)
+        translation, tafsir = self._content(verses)
+        builder.validate(surahs, verses, tajweed, translation, tafsir)
 
     def test_rejects_a_missing_tajweed_verse(self):
         surahs, verses, tajweed = self._corpus()
+        translation, tafsir = self._content(verses)
         del tajweed["2:1"]
         with self.assertRaises(SystemExit):
-            builder.validate(surahs, verses, tajweed)
+            builder.validate(surahs, verses, tajweed, translation, tafsir)
 
     def test_rejects_a_leftover_span_marker(self):
         surahs, verses, tajweed = self._corpus()
+        translation, tafsir = self._content(verses)
         tajweed["2:1"] = "الٓمٓ <span class=end>١</span>"
         with self.assertRaises(SystemExit):
-            builder.validate(surahs, verses, tajweed)
+            builder.validate(surahs, verses, tajweed, translation, tafsir)
 
     def test_rejects_an_empty_tajweed_verse(self):
         surahs, verses, tajweed = self._corpus()
+        translation, tafsir = self._content(verses)
         tajweed["2:1"] = ""
         with self.assertRaises(SystemExit):
-            builder.validate(surahs, verses, tajweed)
+            builder.validate(surahs, verses, tajweed, translation, tafsir)
 
     def test_rejects_a_remaining_unsupported_glyph(self):
         surahs, verses, tajweed = self._corpus()
+        translation, tafsir = self._content(verses)
         tajweed["2:1"] = "ال\u06dfم"
         with self.assertRaises(SystemExit):
-            builder.validate(surahs, verses, tajweed)
+            builder.validate(surahs, verses, tajweed, translation, tafsir)
+
+    def test_rejects_a_missing_translation_verse(self):
+        surahs, verses, tajweed = self._corpus()
+        translation, tafsir = self._content(verses)
+        del translation["2:1"]
+        with self.assertRaises(SystemExit):
+            builder.validate(surahs, verses, tajweed, translation, tafsir)
+
+    def test_rejects_a_missing_tafsir_verse(self):
+        surahs, verses, tajweed = self._corpus()
+        translation, tafsir = self._content(verses)
+        del tafsir["2:1"]
+        with self.assertRaises(SystemExit):
+            builder.validate(surahs, verses, tajweed, translation, tafsir)
+
+    def test_rejects_an_unexpected_verse_key(self):
+        surahs, verses, tajweed = self._corpus()
+        translation, tafsir = self._content(verses)
+        translation["999:1"] = "stray"
+        with self.assertRaises(SystemExit):
+            builder.validate(surahs, verses, tajweed, translation, tafsir)
 
 
 class ValidateTest(unittest.TestCase):
@@ -173,21 +228,36 @@ class ValidateTest(unittest.TestCase):
     def _tajweed():
         return {f"{i}:1": "الٓمٓ" for i in range(1, 115)}
 
+    @staticmethod
+    def _translation():
+        return {f"{i}:1": "text" for i in range(1, 115)}
+
+    @staticmethod
+    def _tafsir():
+        return {f"{i}:1": "نص" for i in range(1, 115)}
+
+    def _validate(self, surahs=None, verses=None, tajweed=None, translation=None, tafsir=None):
+        builder.validate(
+            self._surahs() if surahs is None else surahs,
+            self._verses() if verses is None else verses,
+            self._tajweed() if tajweed is None else tajweed,
+            self._translation() if translation is None else translation,
+            self._tafsir() if tafsir is None else tafsir,
+        )
+
     def test_rejects_the_wrong_surah_count(self):
         with self.assertRaises(SystemExit):
-            builder.validate(
-                [(1, "n", "n", "مكية", 1, 1)], self._verses(), self._tajweed()
-            )
+            self._validate(surahs=[(1, "n", "n", "مكية", 1, 1)])
 
     def test_rejects_the_wrong_ayah_count(self):
         with self.assertRaises(SystemExit):
-            builder.validate(self._surahs(), [], self._tajweed())
+            self._validate(verses=[])
 
     def test_rejects_a_basmala_prefix_on_verse_one(self):
         verses = self._verses()
         verses[1] = (2, 1, "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ الٓمٓ", 2, 1, 1)
         with self.assertRaises(SystemExit):
-            builder.validate(self._surahs(), verses, self._tajweed())
+            self._validate(verses=verses)
 
 
 if __name__ == "__main__":

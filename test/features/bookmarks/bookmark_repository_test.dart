@@ -20,7 +20,8 @@ void main() {
       expect(bookmark, isNull);
     });
 
-    test('saveLastRead persists bookmark and getLastRead retrieves it', () async {
+    test('saveLastRead persists bookmark and getLastRead retrieves it',
+        () async {
       await repository.saveLastRead(
         surahId: 2,
         surahNameAr: 'البقرة',
@@ -33,6 +34,25 @@ void main() {
       expect(bookmark.surahNameAr, equals('البقرة'));
       expect(bookmark.verseNumber, equals(255));
       expect(bookmark.updatedAt, isNotEmpty);
+    });
+
+    test('getMushafPage returns null when no page bookmark stored', () async {
+      expect(await repository.getMushafPage(), isNull);
+    });
+
+    test('saveMushafPage persists and getMushafPage retrieves it', () async {
+      await repository.saveMushafPage(42);
+
+      final bookmark = await repository.getMushafPage();
+      expect(bookmark, isNotNull);
+      expect(bookmark!.pageNumber, equals(42));
+      expect(bookmark.updatedAt, isNotEmpty);
+    });
+
+    test('saveMushafPage(null) clears the stored page bookmark', () async {
+      await repository.saveMushafPage(42);
+      await repository.saveMushafPage(null);
+      expect(await repository.getMushafPage(), isNull);
     });
   });
 }

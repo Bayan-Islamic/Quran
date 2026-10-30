@@ -17,7 +17,8 @@ void main() {
 
   setUpAll(() async {
     final absoluteDbPath = p.join(Directory.current.path, 'assets', 'quran.db');
-    expect(File(absoluteDbPath).existsSync(), true, reason: 'assets/quran.db must exist');
+    expect(File(absoluteDbPath).existsSync(), true,
+        reason: 'assets/quran.db must exist');
 
     db = await databaseFactoryFfi.openDatabase(
       absoluteDbPath,

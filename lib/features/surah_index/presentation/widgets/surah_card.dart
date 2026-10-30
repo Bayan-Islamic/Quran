@@ -88,13 +88,16 @@ class SurahCard extends StatelessWidget {
                 '${surah.totalVerses} Verses',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
                 ),
               ),
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: isMeccan
                           ? Colors.amber.withValues(alpha: 0.15)
@@ -106,7 +109,9 @@ class SurahCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: isMeccan ? AppColors.accentGold : AppColors.primaryEmerald,
+                        color: isMeccan
+                            ? AppColors.accentGold
+                            : AppColors.primaryEmerald,
                       ),
                     ),
                   ),
@@ -115,7 +120,9 @@ class SurahCard extends StatelessWidget {
                     'آياتها ${ArabicNumberConverter.convert(surah.totalVerses)}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
                     ),
                   ),
                 ],

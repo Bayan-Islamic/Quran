@@ -12,7 +12,11 @@ class BookmarkCubit extends Cubit<BookmarkState> {
     emit(const BookmarkLoading());
     try {
       final bookmark = await bookmarkRepository.getLastRead();
-      emit(BookmarkLoaded(bookmark: bookmark));
+      final mushafBookmark = await bookmarkRepository.getMushafPage();
+      emit(BookmarkLoaded(
+        bookmark: bookmark,
+        mushafBookmark: mushafBookmark,
+      ));
     } catch (_) {
       emit(const BookmarkLoaded(bookmark: null));
     }
@@ -30,7 +34,24 @@ class BookmarkCubit extends Cubit<BookmarkState> {
         verseNumber: verseNumber,
       );
       final bookmark = await bookmarkRepository.getLastRead();
-      emit(BookmarkLoaded(bookmark: bookmark));
+      final mushafBookmark = await bookmarkRepository.getMushafPage();
+      emit(BookmarkLoaded(
+        bookmark: bookmark,
+        mushafBookmark: mushafBookmark,
+      ));
+    } catch (_) {}
+  }
+
+  /// Saves (or clears, when [pageNumber] is null) the Mushaf page bookmark.
+  Future<void> saveMushafPage(int? pageNumber) async {
+    try {
+      await bookmarkRepository.saveMushafPage(pageNumber);
+      final bookmark = await bookmarkRepository.getLastRead();
+      final mushafBookmark = await bookmarkRepository.getMushafPage();
+      emit(BookmarkLoaded(
+        bookmark: bookmark,
+        mushafBookmark: mushafBookmark,
+      ));
     } catch (_) {}
   }
 }

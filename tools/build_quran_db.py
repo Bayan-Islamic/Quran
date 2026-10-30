@@ -17,6 +17,11 @@ Schema
     ``text_tajweed``, ``text_search_normalised``, ``page_number``, ``juz``,
     ``hizb``.
 
+``ayah_content``
+    ``ayah_id`` (FK), ``tafsir_muyassar`` (Arabic), ``translation_en``
+    (Saheeh International).  Kept in a side table so the hot ``ayahs`` rows
+    stay small; the Tafsir/Translation sheet joins on demand.
+
 The ``text_search_normalised`` column holds the Arabic-normalised form of
 ``text_uthmani`` so full-text search never has to normalise at runtime.  The
 normalisation must stay byte-identical to
@@ -60,6 +65,17 @@ CHAPTERS_AR_URL = "https://api.quran.com/api/v4/chapters?language=ar"
 TAJWEED_URL = (
     "https://api.quran.com/api/v4/quran/verses/uthmani_tajweed"
     "?chapter_number={chapter}"
+)
+# Saheeh International (resource 20), one chapter per request.
+TRANSLATION_URL = (
+    "https://api.quran.com/api/v4/quran/translations/20?chapter_number={chapter}"
+)
+# Tafsir Al-Muyassar (resource 16). The quran.com bulk endpoint returns an empty
+# list, so the per-chapter JSON is taken from the community mirror that backs the
+# tafsir API (github.com/spa5k/tafsir_api, itself generated from quran.com).
+TAFSIR_MUYASSAR_URL = (
+    "https://raw.githubusercontent.com/spa5k/tafsir_api/main"
+    "/tafsir/ar-tafsir-muyassar/{chapter}.json"
 )
 
 USER_AGENT = "bayan-quran-db-builder/1.0 (+https://github.com/bayan-islamic/quran)"
@@ -156,6 +172,9 @@ def strip_basmala_prefix(text: str) -> str:
 
 _TAJWEED_END_MARKER = re.compile(r"<span class=end>\d+</span>\s*")
 _TAG = re.compile(r"<[^>]*>")
+# Footnote markers look like `<sup foot_note=195932>1</sup>`; the marker and its
+# number are dropped together.
+_SUP_ELEMENT = re.compile(r"<sup[^>]*>.*?</sup>", re.DOTALL)
 
 
 def clean_tajweed_markup(text: str) -> str:
@@ -235,6 +254,53 @@ def build_tajweed(offline: bool) -> dict[str, str]:
     return verses
 
 
+def strip_html(text: str) -> str:
+    """Reduce an HTML-ish translation/tafsir string to clean plain text.
+
+    The Saheeh International translations carry ``<sup foot_note=...>N</sup>``
+    footnote markers; the Tafsir Muyassar text carries ``<span class="green">``
+    highlighting. Both are dropped, and the remaining HTML entities decoded.
+    """
+    text = _SUP_ELEMENT.sub("", text)
+    text = _TAG.sub("", text)
+    return (
+        text.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", '"')
+        .replace("&#39;", "'")
+        .replace("&nbsp;", " ")
+        .strip()
+    )
+
+
+def build_translation(offline: bool) -> dict[str, str]:
+    """Return ``verse_key -> Saheeh International translation`` (English).
+
+    The bulk endpoint returns one entry per ayah in recitation order and does
+    not echo the verse key, so the position supplies the verse number.
+    """
+    verses: dict[str, str] = {}
+    for chapter in range(1, EXPECTED_SURAHS + 1):
+        url = TRANSLATION_URL.format(chapter=chapter)
+        data = _download(url, CACHE_DIR / f"translation_{chapter:03d}.json", offline)
+        for index, verse in enumerate(data["translations"], start=1):
+            verses[f"{chapter}:{index}"] = strip_html(verse["text"])
+    return verses
+
+
+def build_tafsir_muyassar(offline: bool) -> dict[str, str]:
+    """Return ``verse_key -> Tafsir Al-Muyassar`` (Arabic) for every ayah."""
+    verses: dict[str, str] = {}
+    for chapter in range(1, EXPECTED_SURAHS + 1):
+        url = TAFSIR_MUYASSAR_URL.format(chapter=chapter)
+        data = _download(url, CACHE_DIR / f"muyassar_{chapter:03d}.json", offline)
+        for entry in data:
+            key = f"{entry['surah']}:{entry['ayah']}"
+            verses[key] = strip_html(entry["text"])
+    return verses
+
+
 def build_surahs(offline: bool) -> list[tuple[int, str, str, str, int, int]]:
     en = _download(CHAPTERS_URL, CACHE_DIR / "chapters_en.json", offline)["chapters"]
     ar = _download(CHAPTERS_AR_URL, CACHE_DIR / "chapters_ar.json", offline)["chapters"]
@@ -261,6 +327,8 @@ def write_database(
     surahs: list[tuple[int, str, str, str, int, int]],
     verses: list[tuple[int, int, str, int, int, int]],
     tajweed: dict[str, str],
+    translation: dict[str, str],
+    tafsir: dict[str, str],
     output: Path,
 ) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -301,6 +369,13 @@ def write_database(
             CREATE INDEX idx_ayahs_juz   ON ayahs (juz);
             CREATE INDEX idx_ayahs_hizb  ON ayahs (hizb);
             CREATE INDEX idx_ayahs_search ON ayahs (text_search_normalised);
+
+            CREATE TABLE ayah_content (
+                ayah_id         INTEGER PRIMARY KEY,
+                tafsir_muyassar TEXT    NOT NULL,
+                translation_en  TEXT    NOT NULL,
+                FOREIGN KEY (ayah_id) REFERENCES ayahs (id)
+            );
             """
         )
 
@@ -332,6 +407,19 @@ def write_database(
             ],
         )
 
+        connection.executemany(
+            "INSERT INTO ayah_content (ayah_id, tafsir_muyassar, translation_en) "
+            "VALUES (?, ?, ?)",
+            [
+                (
+                    index,
+                    tafsir.get(f"{surah_id}:{verse_number}", ""),
+                    translation.get(f"{surah_id}:{verse_number}", ""),
+                )
+                for index, (surah_id, verse_number, *_rest) in enumerate(verses, start=1)
+            ],
+        )
+
         connection.commit()
         connection.execute("VACUUM")
     finally:
@@ -342,6 +430,8 @@ def validate(
     surahs: list[tuple[int, str, str, str, int, int]],
     verses: list[tuple[int, int, str, int, int, int]],
     tajweed: dict[str, str],
+    translation: dict[str, str],
+    tafsir: dict[str, str],
 ) -> None:
     errors: list[str] = []
     if len(surahs) != EXPECTED_SURAHS:
@@ -350,6 +440,19 @@ def validate(
         errors.append(f"expected {EXPECTED_AYAHS} ayahs, got {len(verses)}")
     if len(tajweed) != EXPECTED_AYAHS:
         errors.append(f"expected {EXPECTED_AYAHS} tajweed verses, got {len(tajweed)}")
+    if len(translation) != EXPECTED_AYAHS:
+        errors.append(
+            f"expected {EXPECTED_AYAHS} translation verses, got {len(translation)}"
+        )
+    if len(tafsir) != EXPECTED_AYAHS:
+        errors.append(f"expected {EXPECTED_AYAHS} tafsir verses, got {len(tafsir)}")
+
+    verse_keys = {f"{surah_id}:{verse_number}" for surah_id, verse_number, *_ in verses}
+    for label, table in (("translation", translation), ("tafsir", tafsir)):
+        for key in sorted(verse_keys - table.keys()):
+            errors.append(f"{label} missing for verse {key}")
+        for key in sorted(table.keys() - verse_keys):
+            errors.append(f"{label} has an unexpected verse {key}")
 
     per_surah: dict[int, int] = {}
     for surah_id, _, _, _, _, _ in verses:
@@ -409,12 +512,15 @@ def main() -> int:
     surahs = build_surahs(args.offline)
     verses = build_verses(args.offline)
     tajweed = build_tajweed(args.offline)
-    validate(surahs, verses, tajweed)
-    write_database(surahs, verses, tajweed, args.output)
+    translation = build_translation(args.offline)
+    tafsir = build_tafsir_muyassar(args.offline)
+    validate(surahs, verses, tajweed, translation, tafsir)
+    write_database(surahs, verses, tajweed, translation, tafsir, args.output)
     size_mb = os.path.getsize(args.output) / (1024 * 1024)
     print(
         f"wrote {args.output} ({size_mb:.2f} MB) - "
-        f"{len(surahs)} surahs, {len(verses)} ayahs"
+        f"{len(surahs)} surahs, {len(verses)} ayahs, "
+        f"{len(tafsir)} tafsir, {len(translation)} translations"
     )
     return 0
 

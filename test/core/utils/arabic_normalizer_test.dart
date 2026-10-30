@@ -21,7 +21,8 @@ void main() {
 
     test('strips diacritics and tashkeel', () {
       const input = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
-      expect(ArabicNormalizer.normalize(input), equals('بسم الله الرحمن الرحيم'));
+      expect(
+          ArabicNormalizer.normalize(input), equals('بسم الله الرحمن الرحيم'));
     });
 
     test('strips tatweel and collapses whitespace', () {
@@ -101,7 +102,8 @@ void main() {
         if (source.trim().isEmpty) {
           expect(normalized.text[i], equals(' '));
         } else {
-          expect(ArabicNormalizer.normalize(source), equals(normalized.text[i]));
+          expect(
+              ArabicNormalizer.normalize(source), equals(normalized.text[i]));
         }
       }
     });

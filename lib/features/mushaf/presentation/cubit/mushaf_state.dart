@@ -20,7 +20,8 @@ class MushafInitial extends MushafState {
 class MushafLoaded extends MushafState {
   const MushafLoaded({required super.edition, required super.pageNumber});
 
-  MushafLoaded copyWith({MushafEdition? edition, int? pageNumber}) => MushafLoaded(
+  MushafLoaded copyWith({MushafEdition? edition, int? pageNumber}) =>
+      MushafLoaded(
         edition: edition ?? this.edition,
         pageNumber: pageNumber ?? this.pageNumber,
       );
