@@ -55,6 +55,34 @@ class StripBasmalaTest(unittest.TestCase):
         )
 
 
+class SanitizeQuranicGlyphsTest(unittest.TestCase):
+    def test_maps_the_rounded_zero_to_the_upright_rectangular_zero(self):
+        # The bundled font cannot draw U+06DF and shows an oversized black dot;
+        # U+06E0 is the same "zero" mark and renders correctly.
+        self.assertEqual(builder.sanitize_quranic_glyphs("أُو\u06dfلَـٰٓئِكَ"),
+                         "أُو\u06e0لَـٰٓئِكَ")
+
+    def test_drops_marks_with_no_same_position_glyph(self):
+        for mark in ("\u06e3", "\u06ea", "\u06eb", "\u06ed"):
+            self.assertEqual(builder.sanitize_quranic_glyphs(f"a{mark}b"), "ab")
+
+    def test_leaves_supported_text_untouched(self):
+        text = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ"
+        self.assertEqual(builder.sanitize_quranic_glyphs(text), text)
+
+    def test_handles_empty_input(self):
+        self.assertEqual(builder.sanitize_quranic_glyphs(""), "")
+
+    def test_is_a_no_op_for_search_normalisation(self):
+        # Every mapped code point is a diacritic, so the normalised form is
+        # identical whether or not the glyphs were sanitised first.
+        text = "أُو\u06dfلَـٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ\u06ed"
+        self.assertEqual(
+            builder.normalize_arabic(builder.sanitize_quranic_glyphs(text)),
+            builder.normalize_arabic(text),
+        )
+
+
 class ValidateTest(unittest.TestCase):
     @staticmethod
     def _surahs():

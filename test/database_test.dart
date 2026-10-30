@@ -128,6 +128,51 @@ void main() {
   });
 
 
+  test('Verify surah revelation types match the source dataset', () async {
+    final surahs = await surahRepository.getAllSurahs();
+    final byId = {for (final s in surahs) s.id: s};
+
+    // Meccan surahs (مكية): Al-Fatihah, Al-An'am, Al-A'raf, Al-Ikhlas, An-Nas.
+    for (final id in [1, 6, 7, 112, 114]) {
+      expect(byId[id]!.type, equals('مكية'), reason: 'surah $id should be Meccan');
+      expect(byId[id]!.isMeccan, isTrue, reason: 'surah $id should be Meccan');
+    }
+    // Medinan surahs (مدنية): Al-Baqarah, At-Tawbah.
+    for (final id in [2, 9]) {
+      expect(byId[id]!.type, equals('مدنية'), reason: 'surah $id should be Medinan');
+      expect(byId[id]!.isMeccan, isFalse, reason: 'surah $id should be Medinan');
+    }
+
+    final meccan = surahs.where((s) => s.isMeccan).length;
+    expect(meccan, equals(86));
+    expect(surahs.length - meccan, equals(28));
+  });
+
+  test('Verify no unsupported Quranic glyphs remain in the text', () async {
+    // The bundled font draws these five marks as one oversized filled circle
+    // (the "black dot" bug); the builder must map or drop them all.
+    final rows = await db.rawQuery('SELECT text_uthmani FROM ayahs');
+    for (final row in rows) {
+      final text = row['text_uthmani'] as String;
+      for (final rune in text.runes) {
+        expect(
+          const {0x06DF, 0x06E3, 0x06EA, 0x06EB, 0x06ED}.contains(rune),
+          isFalse,
+          reason: 'unsupported glyph U+${rune.toRadixString(16)} in $text',
+        );
+      }
+    }
+  });
+
+  test('Verify Al-Baqarah 2:5 uses the rendered zero, not the black dot', () async {
+    final rows = await db.rawQuery(
+      'SELECT text_uthmani FROM ayahs WHERE surah_id = 2 AND verse_number = 5',
+    );
+    final text = rows.first['text_uthmani'] as String;
+    expect(text.contains('\u06df'), isFalse, reason: 'U+06DF black dot remains');
+    expect(text.contains('\u06e0'), isTrue, reason: 'U+06E0 upright zero missing');
+  });
+
   test('Verify search surahs by name and ID', () async {
     final searchFatiha = await surahRepository.searchSurahs('الفاتحة');
     expect(searchFatiha.length, equals(1));

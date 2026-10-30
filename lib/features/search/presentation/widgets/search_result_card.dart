@@ -46,11 +46,12 @@ class SearchResultCard extends StatelessWidget {
     );
 
     final normQuery = ArabicNormalizer.normalize(query);
+    final displayText = ArabicNormalizer.sanitizeForDisplay(text);
     if (normQuery.isEmpty) {
-      return [TextSpan(text: text, style: defaultStyle)];
+      return [TextSpan(text: displayText, style: defaultStyle)];
     }
 
-    final normalized = ArabicNormalizer.normalizeWithOffsets(text);
+    final normalized = ArabicNormalizer.normalizeWithOffsets(displayText);
     final spans = <InlineSpan>[];
     int cursor = 0;
 
@@ -59,20 +60,20 @@ class SearchResultCard extends StatelessWidget {
         match = normalized.text.indexOf(normQuery, match + normQuery.length)) {
       final start = normalized.offsets[match];
       int end = normalized.offsets[match + normQuery.length - 1] + 1;
-      while (end < text.length && ArabicNormalizer.isDiacritic(text[end])) {
+      while (end < displayText.length && ArabicNormalizer.isDiacritic(displayText[end])) {
         end++;
       }
       if (start > cursor) {
-        spans.add(TextSpan(text: text.substring(cursor, start), style: defaultStyle));
+        spans.add(TextSpan(text: displayText.substring(cursor, start), style: defaultStyle));
       }
-      spans.add(TextSpan(text: text.substring(start, end), style: highlightStyle));
+      spans.add(TextSpan(text: displayText.substring(start, end), style: highlightStyle));
       cursor = end;
     }
 
-    if (cursor < text.length) {
-      spans.add(TextSpan(text: text.substring(cursor), style: defaultStyle));
+    if (cursor < displayText.length) {
+      spans.add(TextSpan(text: displayText.substring(cursor), style: defaultStyle));
     }
-    return spans.isEmpty ? [TextSpan(text: text, style: defaultStyle)] : spans;
+    return spans.isEmpty ? [TextSpan(text: displayText, style: defaultStyle)] : spans;
   }
 
   @override

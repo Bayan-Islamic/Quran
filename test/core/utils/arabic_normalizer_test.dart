@@ -35,6 +35,30 @@ void main() {
       expect(ArabicNormalizer.normalize('\ufeff'), equals(''));
     });
 
+    test('sanitizeForDisplay replaces unsupported Quranic marks', () {
+      // U+06DF (oversized black dot in the bundled font) -> U+06E0.
+      expect(
+        ArabicNormalizer.sanitizeForDisplay('أُو\u06dfلَـٰٓئِكَ'),
+        equals('أُو\u06e0لَـٰٓئِكَ'),
+      );
+      // Marks with no same-position glyph are dropped.
+      for (final mark in ['\u06e3', '\u06ea', '\u06eb', '\u06ed']) {
+        expect(ArabicNormalizer.sanitizeForDisplay('a${mark}b'), equals('ab'));
+      }
+      // Supported text is untouched.
+      const supported = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+      expect(ArabicNormalizer.sanitizeForDisplay(supported), equals(supported));
+      expect(ArabicNormalizer.sanitizeForDisplay(''), equals(''));
+    });
+
+    test('sanitizeForDisplay does not change the search-normalised form', () {
+      const text = 'أُو\u06dfلَـٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ\u06ed';
+      expect(
+        ArabicNormalizer.normalize(ArabicNormalizer.sanitizeForDisplay(text)),
+        equals(ArabicNormalizer.normalize(text)),
+      );
+    });
+
     test('stays byte-identical to the Python builder normaliser', () {
       final fixture = File('test/fixtures/normalisation_cases.json');
       final cases = jsonDecode(fixture.readAsStringSync()) as List<dynamic>;

@@ -10,6 +10,11 @@ network connection. It runs on Android, iOS, desktop and the web.
   and verse counts.
 - **Reader** — Uthmani script in the `UthmanicHafs` font with a line height of
   `2.1` so tashkeel is never clipped, plus an adjustable font size.
+- **Clean Quranic glyphs** — the bundled font draws five Quranic annotation
+  marks (`U+06DF`, `U+06E3`, `U+06EA`, `U+06EB`, `U+06ED`) as one oversized
+  filled circle, which reads as a stray black dot. The DB builder maps
+  `U+06DF` to the correctly drawn `U+06E0` (same "zero" mark) and drops the
+  other four, which have no same-position glyph in this font.
 - **Basmala handling** — Surah 1 keeps the Basmala as its first verse, Surah 9
   has none, and Surahs 2–114 show a single decorative `BasmalaHeader` with any
   duplicate Basmala stripped from verse 1.

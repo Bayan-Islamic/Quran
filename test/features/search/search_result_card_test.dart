@@ -125,4 +125,32 @@ void main() {
         _spansOf(tester).firstWhere((s) => s.style?.backgroundColor != null);
     expect(highlighted.style?.color, equals(AppColors.primaryEmerald));
   });
+
+  testWidgets('SearchResultCard highlights correctly after glyph sanitisation',
+      (tester) async {
+    // U+06DF (the oversized black-dot mark) sits just before the match; the
+    // highlight offsets must stay aligned once it is mapped to U+06E0.
+    const text = 'أُو\u06dfلَـٰٓئِكَ عَلَىٰ هُدًى';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchResultCard(
+            result: _result(text),
+            searchQuery: 'هدى',
+            onTap: () {},
+          ),
+        ),
+      ),
+    );
+
+    final spans = _spansOf(tester);
+    final highlighted =
+        spans.where((s) => s.style?.backgroundColor != null).map((s) => s.text).toList();
+    expect(highlighted, hasLength(1));
+    // The slice is taken from the sanitised text, so it carries U+06E0, not U+06DF.
+    expect(highlighted.single, contains('هُدًى'));
+    final joined = spans.map((s) => s.text).join();
+    expect(joined.contains('\u06df'), isFalse);
+    expect(joined.contains('\u06e0'), isTrue);
+  });
 }

@@ -76,6 +76,39 @@ _ALIF_VARIANTS = re.compile("[أإآٱ]")
 _TATWEEL = "\u0640"
 _WHITESPACE = re.compile(r"\s+")
 
+# The bundled KFGQPC Uthmanic Hafs font has no outline for these five Quranic
+# annotation marks; it draws them all with one oversized filled circle, which
+# shows up as a stray black dot in the reader. Map each to a safe equivalent:
+#
+#   U+06DF SMALL HIGH ROUNDED ZERO -> U+06E0 SMALL HIGH UPRIGHT RECTANGULAR ZERO
+#     Same position and "zero" meaning, and the font draws it correctly.
+#   U+06E3 SMALL LOW SEEN, U+06EA/U+06EB EMPTY CENTRE STOPS and U+06ED SMALL LOW
+#     MEEM have no same-position glyph in this font, so they are dropped.
+#
+# Every mapped code point is a diacritic, so the search-normalised form is
+# unaffected and highlight offsets stay aligned.
+_UNSUPPORTED_GLYPH_MAP = {
+    "\u06df": "\u06e0",
+    "\u06e3": "",
+    "\u06ea": "",
+    "\u06eb": "",
+    "\u06ed": "",
+}
+
+
+def sanitize_quranic_glyphs(text: str) -> str:
+    """Replace Quranic marks the bundled font cannot draw with safe equivalents.
+
+    Must stay byte-identical to ``ArabicNormalizer.sanitizeForDisplay`` in
+    ``lib/core/utils/arabic_normalizer.dart``.
+    """
+    if not text:
+        return text
+    for broken, replacement in _UNSUPPORTED_GLYPH_MAP.items():
+        if broken in text:
+            text = text.replace(broken, replacement)
+    return text
+
 
 def normalize_arabic(text: str) -> str:
     """Normalise Arabic text for search.
@@ -131,7 +164,7 @@ def build_verses(offline: bool) -> list[tuple[int, int, str, int, int, int]]:
         data = _download(url, CACHE_DIR / f"verses_{chapter:03d}.json", offline)
         for verse in data["verses"]:
             surah_id, verse_number = (int(part) for part in verse["verse_key"].split(":"))
-            text = verse["text_uthmani"].strip()
+            text = sanitize_quranic_glyphs(verse["text_uthmani"].strip())
             if surah_id not in (SURAH_FATIHA, SURAH_TAWBAH) and verse_number == 1:
                 text = strip_basmala_prefix(text)
             rows.append(
@@ -262,6 +295,15 @@ def validate(
             continue
         if normalize_arabic(text).startswith(BASMALA):
             errors.append(f"verse {surah_id}:1 still carries a Basmala prefix")
+
+    for surah_id, verse_number, text, *_ in verses:
+        for mark in _UNSUPPORTED_GLYPH_MAP:
+            if mark in text:
+                errors.append(
+                    f"verse {surah_id}:{verse_number} still contains the "
+                    f"unsupported glyph U+{ord(mark):04X}"
+                )
+                break
 
     if errors:
         raise SystemExit("validation failed:\n  - " + "\n  - ".join(errors))

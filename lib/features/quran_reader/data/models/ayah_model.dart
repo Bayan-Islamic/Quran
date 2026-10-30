@@ -1,3 +1,4 @@
+import '../../../../core/utils/arabic_normalizer.dart';
 import '../../domain/entities/ayah.dart';
 
 class AyahModel extends Ayah {
@@ -18,7 +19,8 @@ class AyahModel extends Ayah {
       id: map['id'] as int,
       surahId: map['surah_id'] as int,
       verseNumber: map['verse_number'] as int,
-      textUthmani: textUthmani,
+      // Strip Quranic marks the bundled font cannot draw (the stray black dot).
+      textUthmani: ArabicNormalizer.sanitizeForDisplay(textUthmani),
       textSearchNormalised:
           (map['text_search_normalised'] as String?) ?? textUthmani,
       pageNumber: map['page_number'] as int,

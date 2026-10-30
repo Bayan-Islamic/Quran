@@ -17,7 +17,8 @@ class SurahCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isMeccan = surah.type.toLowerCase() == 'meccan';
+    // The database stores the Arabic label directly ("مكية" / "مدنية").
+    final isMeccan = surah.isMeccan;
     final typeTextAr = isMeccan ? 'مكية' : 'مدنية';
 
     return Card(
