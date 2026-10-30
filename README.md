@@ -122,6 +122,16 @@ tajweed_text_span.dart`). It accepts both the quran.com class names
 throws on malformed input — unclosed tags are closed at end-of-text and orphan
 closing tags are ignored. Unknown classes inherit the enclosing colour.
 
+The edition splits some grapheme clusters across tag boundaries — a rule span
+can begin with a combining mark whose base letter sits in the previous run. A
+run that starts with a combining mark is shaped in isolation and the engine then
+draws the OpenType dotted-circle fallback (`◌`) under it. The parser therefore
+binds every leading mark back to its base: when the marks carry the rule the
+base is pulled forward into the coloured run, and when the base carries the rule
+the marks are absorbed backwards so the rule colour is preserved. A corpus-wide
+test (`test/database_test.dart`) asserts no span ever begins with a combining
+mark.
+
 ### Arabic normalisation
 
 The normaliser strips diacritics and tatweel, folds alif variants to bare alif,

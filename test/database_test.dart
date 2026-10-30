@@ -11,6 +11,19 @@ import 'package:bayan_quran/features/surah_index/data/repositories/surah_reposit
 import 'package:bayan_quran/features/quran_reader/data/datasources/quran_reader_local_data_source.dart';
 import 'package:bayan_quran/features/quran_reader/data/repositories/quran_reader_repository_impl.dart';
 
+/// Mirrors the parser's definition of an Arabic combining mark (Unicode Mn).
+bool _startsWithCombiningMark(String text) {
+  if (text.isEmpty) return false;
+  final c = text.codeUnitAt(0);
+  return (c >= 0x0610 && c <= 0x061A) ||
+      (c >= 0x064B && c <= 0x065F) ||
+      c == 0x0670 ||
+      (c >= 0x06D6 && c <= 0x06DC) ||
+      (c >= 0x06DF && c <= 0x06E4) ||
+      (c >= 0x06E7 && c <= 0x06E8) ||
+      (c >= 0x06EA && c <= 0x06ED);
+}
+
 void main() {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
@@ -250,6 +263,40 @@ void main() {
         reason: 'verse $verse plain Tajweed text should match Uthmani text',
       );
     }
+  });
+
+  test('Verify no Tajweed span starts with a combining mark (dotted-circle bug)',
+      () async {
+    // A span that begins with a combining mark is shaped in isolation and the
+    // engine draws the U+25CC dotted-circle fallback. The parser must bind each
+    // such mark back to its base character across the whole corpus.
+    final rows = await db.rawQuery('SELECT text_tajweed FROM ayahs');
+    var spans = 0;
+    for (final row in rows) {
+      final span = TajweedTextSpan.build(
+        row['text_tajweed'] as String,
+        fontSize: 24,
+        defaultColor: const Color(0xFF000000),
+      );
+      void walk(InlineSpan s) {
+        if (s is! TextSpan) return;
+        final text = s.text;
+        if (text != null && text.isNotEmpty) {
+          spans++;
+          expect(
+            _startsWithCombiningMark(text),
+            isFalse,
+            reason: 'span "$text" starts with a combining mark',
+          );
+        }
+        for (final child in s.children ?? const <InlineSpan>[]) {
+          walk(child);
+        }
+      }
+
+      walk(span);
+    }
+    expect(spans, greaterThan(rows.length));
   });
 
   test('Verify search surahs by name and ID', () async {

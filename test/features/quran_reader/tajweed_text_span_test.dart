@@ -28,13 +28,28 @@ TextSpan _parse(String markup, {Color defaultColor = Colors.black}) {
   );
 }
 
+/// Mirrors the parser's definition of an Arabic combining mark.
+bool _startsWithCombiningMark(String text) {
+  if (text.isEmpty) return false;
+  final c = text.codeUnitAt(0);
+  return (c >= 0x0610 && c <= 0x061A) ||
+      (c >= 0x064B && c <= 0x065F) ||
+      c == 0x0670 ||
+      (c >= 0x06D6 && c <= 0x06DC) ||
+      (c >= 0x06DF && c <= 0x06E4) ||
+      (c >= 0x06E7 && c <= 0x06E8) ||
+      (c >= 0x06EA && c <= 0x06ED);
+}
+
 void main() {
   group('TajweedTextSpan parsing', () {
     test('parses a simple tagged run into a coloured span', () {
       final root = _parse('قُلْ <tajweed class=qalaqah>د</tajweed>ٌ');
       final leaves = _leaves(root);
       expect(leaves.map((l) => l.$1).join(), equals('قُلْ دٌ'));
-      final qalqalah = leaves.firstWhere((l) => l.$1 == 'د');
+      // The trailing dammatan is bound to its base so the cluster is never
+      // split; the rule-carrying base keeps the qalqalah colour.
+      final qalqalah = leaves.firstWhere((l) => l.$1 == 'دٌ');
       expect(qalqalah.$2, equals(TajweedColors.qalqalah));
       // Untagged text keeps the default colour.
       expect(leaves.firstWhere((l) => l.$1 == 'قُلْ ').$2,
@@ -149,6 +164,65 @@ void main() {
       expect(leaves, hasLength(1));
       expect(leaves.single.$1, equals('الٓمٓ'));
       expect(leaves.single.$2, equals(Colors.black));
+    });
+  });
+
+  group('TajweedTextSpan combining-mark binding', () {
+    test('pulls the base into a rule run that starts with a mark', () {
+      // The madda span `َٲ` (fatha + U+0672) follows the plain `صِر`. The base
+      // reh is pulled forward so the cluster `رَٲ` is never split.
+      final leaves = _leaves(_parse(
+        'صِر<tajweed class=madda_normal>َٲ</tajweed>طَ',
+      ));
+      expect(leaves.map((l) => l.$1).join(), equals('صِرَٲطَ'));
+      final madd = leaves.firstWhere((l) => l.$1 == 'رَٲ');
+      expect(madd.$2, equals(TajweedColors.maddShort));
+      // No leaf may begin with a combining mark.
+      for (final leaf in leaves) {
+        expect(_startsWithCombiningMark(leaf.$1), isFalse,
+            reason: 'leaf ${leaf.$1} starts with a combining mark');
+      }
+    });
+
+    test('binds a leading dagger alif to its base letter', () {
+      final leaves = _leaves(_parse(
+        'صِر<tajweed class=madda_normal>\u0670</tajweed>طَ',
+      ));
+      expect(leaves.map((l) => l.$1).join(), equals('صِر\u0670طَ'));
+      final madd = leaves.firstWhere((l) => l.$1.contains('\u0670'));
+      expect(madd.$1, equals('ر\u0670'));
+      expect(madd.$2, equals(TajweedColors.maddShort));
+    });
+
+    test('absorbs trailing marks backwards when the base carries the rule', () {
+      // `د` is qalqalah; the following plain `ٌ` must not start its own run.
+      final leaves = _leaves(_parse('<tajweed class=qalaqah>د</tajweed>ٌن'));
+      expect(leaves.map((l) => l.$1).join(), equals('دٌن'));
+      final qalqalah = leaves.firstWhere((l) => l.$1 == 'دٌ');
+      expect(qalqalah.$2, equals(TajweedColors.qalqalah));
+      expect(leaves.last.$1, equals('ن'));
+      expect(leaves.last.$2, equals(Colors.black));
+    });
+
+    test('leaves a standalone mark at the very start of the verse untouched', () {
+      // Nothing precedes the mark, so there is no base to bind to; the parser
+      // must not throw and must keep the text intact.
+      final leaves = _leaves(_parse('<tajweed class=madda_normal>َآ</tajweed>'));
+      expect(leaves.map((l) => l.$1).join(), equals('َآ'));
+    });
+
+    test('does not create an empty leading span when the first run is marks', () {
+      final leaves = _leaves(_parse('<tajweed class=ghunnah>ّ</tajweed>م'));
+      expect(leaves.every((l) => l.$1.isNotEmpty), isTrue);
+      expect(leaves.map((l) => l.$1).join(), equals('ّم'));
+    });
+
+    test('keeps a rule colour when the base and marks are both tagged', () {
+      final leaves = _leaves(_parse(
+        '<tajweed class=madda_normal>َٲ</tajweed>',
+      ));
+      expect(leaves.single.$1, equals('َٲ'));
+      expect(leaves.single.$2, equals(TajweedColors.maddShort));
     });
   });
 

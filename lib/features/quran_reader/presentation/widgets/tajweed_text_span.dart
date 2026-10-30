@@ -93,6 +93,16 @@ class TajweedLegendEntry {
   const TajweedLegendEntry(this.labelAr, this.labelEn, this.color);
 }
 
+/// A styled run of text produced by the parser before it becomes a [TextSpan].
+/// The text is mutable so [TajweedTextSpan._bindLeadingMarks] can move a base
+/// character between neighbouring runs.
+class _TajweedRun {
+  String text;
+  final Color? color;
+
+  _TajweedRun(this.text, this.color);
+}
+
 /// Builds a coloured [TextSpan] tree from `uthmani_tajweed` markup.
 ///
 /// The markup is a flat sequence of `<tajweed class="...">…</tajweed>` runs
@@ -131,7 +141,7 @@ class TajweedTextSpan {
       height: height ?? lineHeight,
     );
 
-    final children = <InlineSpan>[];
+    final runs = <_TajweedRun>[];
     // Each frame is the colour that applies to text emitted while it is open.
     // A frame inherits the enclosing colour when its own class is unknown.
     final stack = <Color?>[];
@@ -140,10 +150,7 @@ class TajweedTextSpan {
     void flush() {
       if (buffer.isEmpty) return;
       final color = stack.isEmpty ? null : stack.last;
-      children.add(TextSpan(
-        text: buffer.toString(),
-        style: color == null ? null : base.copyWith(color: color),
-      ));
+      runs.add(_TajweedRun(buffer.toString(), color));
       buffer.clear();
     }
 
@@ -179,7 +186,94 @@ class TajweedTextSpan {
     }
     flush();
 
-    return TextSpan(style: base, children: children);
+    _bindLeadingMarks(runs);
+
+    return TextSpan(
+      style: base,
+      children: [
+        for (final run in runs)
+          TextSpan(
+            text: run.text,
+            style: run.color == null ? null : base.copyWith(color: run.color),
+          ),
+      ],
+    );
+  }
+
+  /// Rebinds every run that begins with an Arabic combining mark.
+  ///
+  /// The `uthmani_tajweed` edition splits a grapheme cluster across tag
+  /// boundaries, so a run can start with a mark whose base character sits in
+  /// the previous run (for example the madda span `َٲ` after the plain `صِر`).
+  /// A run that starts with a mark is shaped in isolation and the engine then
+  /// draws the OpenType dotted-circle fallback (`◌`) under it. Binding the mark
+  /// back to its base keeps each cluster inside a single run.
+  ///
+  /// When the marks carry the rule the base is pulled forward into the coloured
+  /// run (`رٰ` renders as one madd span); when the base carries the rule the
+  /// marks are absorbed backwards so the rule colour is preserved (`دٌ` stays
+  /// qalqalah).
+  static void _bindLeadingMarks(List<_TajweedRun> runs) {
+    for (var i = 1; i < runs.length; i++) {
+      final run = runs[i];
+      if (run.text.isEmpty || !_isCombiningMark(run.text.codeUnitAt(0))) {
+        continue;
+      }
+
+      var j = i - 1;
+      while (j >= 0 && runs[j].text.isEmpty) {
+        j--;
+      }
+      if (j < 0) continue;
+
+      final prev = runs[j];
+      final clusterStart = _lastBaseClusterStart(prev.text);
+      if (clusterStart < 0) continue;
+
+      if (run.color != null) {
+        final baseCluster = prev.text.substring(clusterStart);
+        prev.text = prev.text.substring(0, clusterStart);
+        run.text = baseCluster + run.text;
+      } else {
+        // Only the leading marks move back; the rest of the plain run keeps its
+        // own colour, so the base letter is never recoloured.
+        final end = _leadingMarkEnd(run.text);
+        prev.text = prev.text + run.text.substring(0, end);
+        run.text = run.text.substring(end);
+      }
+    }
+    runs.removeWhere((run) => run.text.isEmpty);
+  }
+
+  /// Index just past the leading run of combining marks in [text].
+  static int _leadingMarkEnd(String text) {
+    var i = 0;
+    while (i < text.length && _isCombiningMark(text.codeUnitAt(i))) {
+      i++;
+    }
+    return i;
+  }
+
+  /// Index of the final base character in [text] — the start of the grapheme
+  /// cluster a leading combining mark would attach to. Returns -1 when [text]
+  /// is made up entirely of combining marks.
+  static int _lastBaseClusterStart(String text) {
+    var i = text.length - 1;
+    while (i >= 0 && _isCombiningMark(text.codeUnitAt(i))) {
+      i--;
+    }
+    return i;
+  }
+
+  /// True when [codeUnit] is an Arabic combining mark (Unicode category Mn).
+  static bool _isCombiningMark(int codeUnit) {
+    return (codeUnit >= 0x0610 && codeUnit <= 0x061A) || // signs
+        (codeUnit >= 0x064B && codeUnit <= 0x065F) || // harakat
+        codeUnit == 0x0670 || // superscript alef
+        (codeUnit >= 0x06D6 && codeUnit <= 0x06DC) || // Quranic marks
+        (codeUnit >= 0x06DF && codeUnit <= 0x06E4) ||
+        (codeUnit >= 0x06E7 && codeUnit <= 0x06E8) ||
+        (codeUnit >= 0x06EA && codeUnit <= 0x06ED);
   }
 
   /// Extracts the class name from an opening tag such as
