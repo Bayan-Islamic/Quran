@@ -201,6 +201,18 @@ Tests run against the real bundled database through `sqflite_common_ffi`; the
 database is never mocked. Coverage includes surah/ayah counts, the Basmala
 rules, normaliser/Python parity, offset mapping, and search highlighting.
 
+## Screenshots
+
+The page-by-page Mushaf in both editions, captured at a 412×915 mobile
+viewport:
+
+| Standard (المصحف) | Tajweed (التجويد) | Controls |
+| --- | --- | --- |
+| ![Standard Mushaf](screenshots/mushaf_standard.png) | ![Tajweed Mushaf](screenshots/mushaf_tajweed.png) | ![Mushaf controls](screenshots/mushaf_controls.png) |
+
+Tapping the page toggles the chrome: the app bar carries the edition switcher
+and the Arabic page counter, and a page slider sits along the bottom edge.
+
 ## License
 
 See [LICENSE](LICENSE).

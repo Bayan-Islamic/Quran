@@ -24,6 +24,10 @@ class MushafPage extends StatefulWidget {
 class _MushafPageState extends State<MushafPage> {
   late final PageController _pageController;
 
+  /// Whether the top/bottom chrome (edition switcher, counter, slider) is
+  /// shown. Tapping the page toggles it so the Mushaf can be read full-bleed.
+  bool _controlsVisible = true;
+
   @override
   void initState() {
     super.initState();
@@ -38,41 +42,14 @@ class _MushafPageState extends State<MushafPage> {
     super.dispose();
   }
 
+  void _toggleControls() =>
+      setState(() => _controlsVisible = !_controlsVisible);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryEmeraldDark,
-      appBar: AppBar(
-        title: BlocBuilder<MushafCubit, MushafState>(
-          builder: (context, state) => Text(
-            'صفحة ${ArabicNumberConverter.convert(state.pageNumber)}'
-            ' / ${ArabicNumberConverter.convert(MushafEdition.pageCount)}',
-            style: const TextStyle(fontSize: 16),
-          ),
-        ),
-        actions: [
-          BlocBuilder<MushafCubit, MushafState>(
-            builder: (context, state) {
-              final isTajweed = state.edition == MushafEdition.tajweed;
-              return TextButton.icon(
-                onPressed: () => context.read<MushafCubit>().toggleEdition(),
-                icon: Icon(
-                  isTajweed ? Icons.palette : Icons.palette_outlined,
-                  color: isTajweed ? AppColors.accentGoldLight : Colors.white,
-                ),
-                label: Text(
-                  isTajweed
-                      ? MushafEdition.tajweed.labelAr
-                      : MushafEdition.standard.labelAr,
-                  style: TextStyle(
-                    color: isTajweed ? AppColors.accentGoldLight : Colors.white,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: _controlsVisible ? _buildAppBar() : null,
       body: BlocConsumer<MushafCubit, MushafState>(
         listener: (context, state) {
           if (_pageController.hasClients &&
@@ -81,19 +58,133 @@ class _MushafPageState extends State<MushafPage> {
           }
         },
         builder: (context, state) {
-          return PageView.builder(
-            controller: _pageController,
-            itemCount: MushafEdition.pageCount,
-            onPageChanged: (index) =>
-                context.read<MushafCubit>().goToPage(index + 1),
-            itemBuilder: (context, index) {
-              return _MushafPageImage(
-                edition: state.edition,
-                pageNumber: index + 1,
-              );
-            },
+          return Stack(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _toggleControls,
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: MushafEdition.pageCount,
+                  onPageChanged: (index) =>
+                      context.read<MushafCubit>().goToPage(index + 1),
+                  itemBuilder: (context, index) {
+                    return _MushafPageImage(
+                      edition: state.edition,
+                      pageNumber: index + 1,
+                    );
+                  },
+                ),
+              ),
+              if (_controlsVisible)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _MushafControlsBar(
+                    pageNumber: state.pageNumber,
+                    onPageChanged: (page) =>
+                        context.read<MushafCubit>().goToPage(page),
+                  ),
+                ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: BlocBuilder<MushafCubit, MushafState>(
+        builder: (context, state) => Text(
+          'صفحة ${ArabicNumberConverter.convert(state.pageNumber)}'
+          ' / ${ArabicNumberConverter.convert(MushafEdition.pageCount)}',
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+      actions: [
+        BlocBuilder<MushafCubit, MushafState>(
+          builder: (context, state) {
+            final isTajweed = state.edition == MushafEdition.tajweed;
+            return TextButton.icon(
+              onPressed: () => context.read<MushafCubit>().toggleEdition(),
+              icon: Icon(
+                isTajweed ? Icons.palette : Icons.palette_outlined,
+                color: isTajweed ? AppColors.accentGoldLight : Colors.white,
+              ),
+              label: Text(
+                isTajweed
+                    ? MushafEdition.tajweed.labelAr
+                    : MushafEdition.standard.labelAr,
+                style: TextStyle(
+                  color: isTajweed ? AppColors.accentGoldLight : Colors.white,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Bottom overlay: a page slider plus the Arabic page counter.
+class _MushafControlsBar extends StatelessWidget {
+  final int pageNumber;
+  final ValueChanged<int> onPageChanged;
+
+  const _MushafControlsBar({
+    required this.pageNumber,
+    required this.onPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+      decoration: BoxDecoration(
+        color: AppColors.primaryEmeraldDark.withValues(alpha: 0.92),
+        border: const Border(
+          top: BorderSide(color: AppColors.accentGold, width: 0.6),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Text(
+              ArabicNumberConverter.convert(pageNumber),
+              style: const TextStyle(
+                color: AppColors.accentGoldLight,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: AppColors.accentGoldLight,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: AppColors.accentGoldLight,
+                  overlayColor: AppColors.accentGoldLight.withValues(alpha: 0.2),
+                  trackHeight: 3,
+                ),
+                child: Slider(
+                  min: 1,
+                  max: MushafEdition.pageCount.toDouble(),
+                  value: pageNumber.toDouble(),
+                  label: ArabicNumberConverter.convert(pageNumber),
+                  onChanged: (value) => onPageChanged(value.round()),
+                ),
+              ),
+            ),
+            Text(
+              ArabicNumberConverter.convert(MushafEdition.pageCount),
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
+            ),
+          ],
+        ),
       ),
     );
   }

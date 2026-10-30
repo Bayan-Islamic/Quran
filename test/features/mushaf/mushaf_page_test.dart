@@ -23,8 +23,26 @@ void main() {
 
     final cubit = tester.element(find.byType(MushafPage)).read<MushafCubit>();
     expect(cubit.state.pageNumber, 42);
-    // "صفحة ٤٢ / ٦٠٤"
-    expect(find.textContaining('٤٢'), findsOneWidget);
+    // The counter appears both in the app bar ("صفحة ٤٢ / ٦٠٤") and in the
+    // bottom control bar ("٤٢").
+    expect(find.textContaining('٤٢'), findsWidgets);
+    expect(find.textContaining('صفحة ٤٢'), findsOneWidget);
+  });
+
+  testWidgets('the bottom control bar exposes a page slider', (tester) async {
+    await tester.pumpWidget(buildTestWidget(initialPage: 1));
+    await tester.pump();
+
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    expect(slider.min, 1);
+    expect(slider.max, MushafEdition.pageCount.toDouble());
+    expect(slider.value, 1);
+
+    // Dragging the slider moves the reader to a new page.
+    final cubit = tester.element(find.byType(MushafPage)).read<MushafCubit>();
+    await tester.drag(find.byType(Slider), const Offset(300, 0));
+    await tester.pumpAndSettle();
+    expect(cubit.state.pageNumber, greaterThan(1));
   });
 
   testWidgets('swiping forward advances the page', (tester) async {
